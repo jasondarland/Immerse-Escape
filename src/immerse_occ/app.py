@@ -14,12 +14,17 @@ def run() -> int:
     def _excepthook(exc_type, exc_value, exc_tb):
         message = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         print(message, file=sys.stderr)
-        QMessageBox.critical(
-            None,
-            "Unexpected Application Error",
-            "The OCC encountered an unexpected error and must close.\n\n"
-            "Error details have been printed to stderr."
-        )
+        app = QApplication.instance()
+        if app is not None:
+            try:
+                QMessageBox.critical(
+                    None,
+                    "Unexpected Application Error",
+                    "The OCC encountered an unexpected error and must close.\n\n"
+                    "Error details have been printed to stderr."
+                )
+            except Exception:
+                print("Failed to show error dialog.", file=sys.stderr)
 
     sys.excepthook = _excepthook
     app = QApplication(sys.argv)

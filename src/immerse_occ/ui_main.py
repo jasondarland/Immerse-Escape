@@ -243,6 +243,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(btn, row, col)
 
     def _room_changed(self) -> None:
+        self._save_notes()
         room_id = self.room_selector.currentData()
         if not room_id:
             return
@@ -283,6 +284,8 @@ class MainWindow(QMainWindow):
         element_id = item.data(Qt.UserRole)
         if not element_id:
             return
+        if element_id not in self.service.state.show_elements:
+            return
         self.selected_element_id = element_id
         el = self.service.state.show_elements[element_id]
         triggered = el.last_triggered.strftime("%H:%M:%S") if el.last_triggered else "Never"
@@ -300,7 +303,8 @@ class MainWindow(QMainWindow):
 
     def _append_event(self, event) -> None:
         sev = "⚠" if event.severity != Severity.INFO else "•"
-        room_name = self.service.state.rooms[event.room_id].name
+        room = self.service.state.rooms.get(event.room_id)
+        room_name = room.name if room else event.room_id
         self.event_log.insertItem(0, f"[{event.at:%H:%M:%S}] {sev} {room_name}: {event.message}")
         while self.event_log.count() > 200:
             self.event_log.takeItem(self.event_log.count() - 1)
@@ -357,7 +361,7 @@ class MainWindow(QMainWindow):
             self.reset_checklist.addItem(QListWidgetItem(item))
 
     def refresh_elements(self) -> None:
-        room_filter = self.element_room_filter.currentData()
+        room_filter = self.element_room_filter.currentData() or "all"
         category_filter = self.category_filter.currentText()
         search = self.search.text().lower().strip()
 
@@ -378,7 +382,9 @@ class MainWindow(QMainWindow):
             cue_item = QTableWidgetItem(el.name)
             cue_item.setData(Qt.UserRole, el.id)
             self.elements_table.setItem(i, 0, cue_item)
-            self.elements_table.setItem(i, 1, QTableWidgetItem(self.service.state.rooms[el.room_id].name))
+            room = self.service.state.rooms.get(el.room_id)
+            room_name = room.name if room else el.room_id
+            self.elements_table.setItem(i, 1, QTableWidgetItem(room_name))
             self.elements_table.setItem(i, 2, QTableWidgetItem(el.category))
             self.elements_table.setItem(i, 3, QTableWidgetItem(el.status))
 
