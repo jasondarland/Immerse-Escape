@@ -35,6 +35,13 @@ python -m immerse_occ
 
 If your PowerShell version does not support `&&`, run one command per line (or use `;`).
 
+**Important:** do not paste commands with a leading `&&` at the start of the line.
+For example, this is invalid in Windows PowerShell 5.x and will throw the parser error you saw:
+
+```powershell
+&& python -m compileall src
+```
+
 ## Quick Validation Check
 From repository root:
 
