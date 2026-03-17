@@ -13,7 +13,7 @@ Professional desktop/tablet-style Operator Control Console MVP for live escape r
 - Room and category filtering
 - Example production-style data (Lab A / Lab B)
 
-## Run
+## Run (macOS / Linux)
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -21,6 +21,28 @@ pip install -r requirements.txt
 pip install -e .
 python -m immerse_occ
 ```
+
+## Run (Windows PowerShell)
+> Run these commands from the **repository root** (the folder containing `README.md`, `pyproject.toml`, and `src/`).
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip install -e .
+python -m immerse_occ
+```
+
+If your PowerShell version does not support `&&`, run one command per line (or use `;`).
+
+## Quick Validation Check
+From repository root:
+
+```powershell
+python -m compileall src
+```
+
+If you run this from `src\immerse_occ`, it will fail with `Can't list 'src'` because there is no nested `src` folder there.
 
 ## Project Structure
 ```
@@ -42,3 +64,7 @@ This MVP uses simulated runtime data and mock command dispatch while keeping arc
 If the application fails very early during startup, diagnostic information is written to:
 
 `~/.immerse_occ_startup.log`
+
+On Windows, this resolves to:
+
+`C:\Users\<your-user>\.immerse_occ_startup.log`
