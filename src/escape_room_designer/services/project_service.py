@@ -58,6 +58,7 @@ class ProjectService:
             "devices",
             "reports",
             "notes",
+            "config",
         ]
         for folder in folders:
             (target_dir / folder).mkdir(parents=True, exist_ok=True)

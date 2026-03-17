@@ -1,5 +1,6 @@
 {
-  "name": "Demo - Forgotten Laboratory",
+  "name": "Demo - IMMERSE Forgotten Laboratory",
+  "version": "0.1.0",
   "created_at": "2026-01-01T10:00:00",
   "updated_at": "2026-01-01T10:00:00",
   "layouts": [
@@ -7,21 +8,9 @@
       "room_id": "room-lab-a",
       "room_name": "Lab A",
       "background_image": "",
+      "scale_m_per_px": 0.01,
+      "background_locked": true,
       "objects": [
-        {
-          "object_id": "obj-wall-1",
-          "object_type": "wall",
-          "name": "North Wall",
-          "x": -200,
-          "y": -140,
-          "width": 600,
-          "height": 20,
-          "rotation": 0,
-          "color": "#4d6a91",
-          "layer": "architecture",
-          "image_path": "",
-          "metadata": {}
-        },
         {
           "object_id": "obj-door-1",
           "object_type": "door",
@@ -37,27 +26,19 @@
           "metadata": {"locked": true}
         }
       ]
-    },
+    }
+  ],
+  "devices": [
     {
-      "room_id": "room-lab-b",
-      "room_name": "Lab B",
-      "background_image": "",
-      "objects": [
-        {
-          "object_id": "obj-prop-1",
-          "object_type": "prop",
-          "name": "Chemical Cabinet",
-          "x": -80,
-          "y": 20,
-          "width": 90,
-          "height": 120,
-          "rotation": 0,
-          "color": "#3f5b81",
-          "layer": "props",
-          "image_path": "",
-          "metadata": {}
-        }
-      ]
+      "runtime_id": "dev-door-maglock-01",
+      "name": "Door Maglock 01",
+      "device_type": "maglock",
+      "room_id": "room-lab-a",
+      "node_assignment": "Node-GPIO-A",
+      "address": "relay:1",
+      "io_mapping": "out:1",
+      "metadata": {"failsafe": true},
+      "state": "online"
     }
   ],
   "puzzle_nodes": [
@@ -76,11 +57,22 @@
     {"source": "l1", "target": "l2", "label": ""},
     {"source": "l2", "target": "l3", "label": ""}
   ],
-  "devices": [
-    {"name": "Door Maglock 01", "type": "maglock", "address": "relay:1", "zone": "Lab A"}
+  "timeline": [
+    {
+      "cue_id": "cue-1",
+      "track": "lighting",
+      "timecode_ms": 0,
+      "action": "set_look",
+      "target": "room-lab-a",
+      "payload": {"look": "preset_start"}
+    }
   ],
   "media": [
-    {"name": "Alarm Stinger", "type": "audio", "path": "media/audio/alarm_stinger.wav"}
+    {"name": "Alarm Stinger", "type": "audio", "path": ""}
   ],
-  "notes": "Demo project showcasing MVP capabilities."
+  "operator_controls": [
+    {"id": "start_game", "label": "Start Game", "endpoint": "operator/start"},
+    {"id": "reset", "label": "Reset", "endpoint": "operator/reset"}
+  ],
+  "notes": "Demo project showcasing IMMERSEPACK export MVP capabilities."
 }

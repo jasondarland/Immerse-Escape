@@ -1,30 +1,39 @@
-# Escape Room Designer (MVP)
+# IMMERSE Designer – Escape Room Edition (MVP)
 
-A desktop MVP for designing and programming escape room experiences.
+Professional desktop authoring software for designing, engineering, and programming escape rooms and immersive attractions for the IMMERSE ecosystem.
 
-## Features in this MVP
-- Project-based workflow with save/load/export and demo project
-- Professional dark themed multi-page desktop UI
-- Sidebar navigation and dock panels (inspector + system log)
-- Visual layout editor with unlimited rooms, per-room backgrounds, and image-based props/devices
-- Puzzle flow node editor (graph-style puzzle relationships) with copy/paste shortcuts
-- Logic editor framework (input/logic/output nodes) with copy/paste shortcuts
-- Keyboard editing shortcuts (Ctrl+C/Ctrl+V/Ctrl+X/Delete/Ctrl+D) across editors
-- Zoom controls (toolbar + Ctrl+mouse wheel + Ctrl+Plus/Minus/0) on Layout/Puzzle/Logic canvases
-- Scalable architecture for future hardware integrations
+## MVP features implemented
+- Project-based workflow with save/load/autosave/version snapshots
+- Dark professional multi-page desktop UI (left nav + center workspace + right inspector + bottom logs)
+- Image-based layout system with unlimited room tabs
+  - import room backgrounds
+  - place doors/props/devices as overlay objects
+  - assign object image assets
+  - zoom controls (toolbar + Ctrl+wheel + shortcuts)
+- Device registry page with runtime-oriented device metadata
+  - runtime IDs
+  - room assignment
+  - addressing + node assignment
+- Puzzle flow and logic graph editors with copy/paste/delete + zoom
+- **IMMERSEPACK.ZIP export pipeline** that generates runtime-oriented package structure:
+  - `immersepack.json`
+  - `layout/layouts.json`
+  - `devices/devices.json`
+  - `logic/logic.json`
+  - `timeline/timeline.json`
+  - `media/{audio,video,images}/...`
+  - `config/system.json`
 
 ## Run
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python main.py
 ```
 
-## Project layout
-- `main.py` application entry point
-- `src/escape_room_designer/` source package
-- `src/escape_room_designer/demo_data/` sample project JSON
+## Exporting IMMERSEPACK
+Use **File → Export IMMERSEPACK.ZIP**. The app writes a deployable zip named `IMMERSEPACK.ZIP`.
 
 ## Notes
-This version is an MVP scaffold intended for rapid expansion into show-control and hardware protocols (OSC/MQTT/DMX/etc.).
+This is an MVP foundation designed for future direct compatibility work with IMMERSE Runtime adapters and hardware protocol plugins.

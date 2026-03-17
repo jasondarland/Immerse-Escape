@@ -19,7 +19,7 @@ def run() -> None:
         sys.path.insert(0, str(src_dir))
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Escape Room Designer")
+    app.setApplicationName("IMMERSE Designer – Escape Room Edition")
     app.setStyleSheet(build_stylesheet())
 
     window = MainWindow()
