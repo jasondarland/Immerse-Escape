@@ -75,3 +75,34 @@ If the application fails very early during startup, diagnostic information is wr
 On Windows, this resolves to:
 
 `C:\Users\<your-user>\.immerse_occ_startup.log`
+
+## Importing `immersepack.zip`
+Use the **Load ImmersePack ZIP** button in the top bar of the Operator Controls page.
+
+Supported pack layouts:
+
+1. `immersepack.json` (or `manifest.json` / `pack.json`) at any path in the zip:
+
+```json
+{
+  "rooms": [
+    {
+      "id": "lab_a",
+      "name": "Lab A",
+      "puzzles": [{"id": "a1", "name": "Calibrate Reactor"}],
+      "reset_checklist": ["Re-lock main door"]
+    }
+  ],
+  "devices": [
+    {"id": "door_a", "name": "Lab A Main Door", "room_id": "lab_a", "kind": "door", "status": "locked"}
+  ],
+  "show_elements": [
+    {"id": "cue_alarm", "name": "Alarm", "room_id": "lab_a", "category": "Audio", "status": "ready"}
+  ]
+}
+```
+
+2. Separate files: `rooms.json` (required), plus optional `devices.json`, `show_elements.json`.
+3. Fallback folder scan: `/rooms/<room-name>/...` (creates room list even if no device/cue JSON exists).
+
+When loaded, the app automatically rebuilds room selectors and filters so room count and content come from your pack.

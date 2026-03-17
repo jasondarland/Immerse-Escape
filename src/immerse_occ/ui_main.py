@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -69,6 +70,9 @@ class MainWindow(QMainWindow):
         top_bar.addStretch()
         top_bar.addWidget(QLabel("Room Status:"))
         top_bar.addWidget(self.global_status_label)
+        self.load_pack_button = QPushButton("Load ImmersePack ZIP")
+        self.load_pack_button.clicked.connect(self._load_pack_zip)
+        top_bar.addWidget(self.load_pack_button)
         root.addLayout(top_bar)
 
         splitter = QSplitter(Qt.Horizontal)
@@ -252,6 +256,51 @@ class MainWindow(QMainWindow):
         self.notes_edit.setPlainText(room.notes)
         self.refresh()
 
+    def _load_pack_zip(self) -> None:
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Immerse Pack ZIP",
+            "",
+            "ZIP files (*.zip)",
+        )
+        if not file_path:
+            return
+
+        try:
+            self.service.load_pack(file_path)
+            self._rebuild_room_controls()
+            self.refresh()
+        except Exception as exc:
+            QMessageBox.critical(self, "Load Pack Failed", str(exc))
+
+    def _rebuild_room_controls(self) -> None:
+        room_ids = list(self.service.state.rooms.keys())
+        if not room_ids:
+            return
+
+        self.selected_room_id = room_ids[0]
+
+        self.room_selector.blockSignals(True)
+        self.room_selector.clear()
+        for room in self.service.state.rooms.values():
+            self.room_selector.addItem(room.name, room.id)
+        self.room_selector.setCurrentIndex(0)
+        self.room_selector.blockSignals(False)
+
+        self.element_room_filter.blockSignals(True)
+        self.element_room_filter.clear()
+        self.element_room_filter.addItem("All Rooms", "all")
+        for room in self.service.state.rooms.values():
+            self.element_room_filter.addItem(room.name, room.id)
+        self.element_room_filter.setCurrentIndex(0)
+        self.element_room_filter.blockSignals(False)
+
+        self.rooms_list.blockSignals(True)
+        self.rooms_list.clear()
+        for room in self.service.state.rooms.values():
+            self.rooms_list.addItem(room.name)
+        self.rooms_list.blockSignals(False)
+
     def _save_notes(self) -> None:
         if self.selected_room_id not in self.service.state.rooms:
             return
@@ -288,10 +337,12 @@ class MainWindow(QMainWindow):
             return
         self.selected_element_id = element_id
         el = self.service.state.show_elements[element_id]
+        room = self.service.state.rooms.get(el.room_id)
+        room_name = room.name if room else el.room_id
         triggered = el.last_triggered.strftime("%H:%M:%S") if el.last_triggered else "Never"
         self.details.setPlainText(
             f"Name: {el.name}\n"
-            f"Room: {self.service.state.rooms[el.room_id].name}\n"
+            f"Room: {room_name}\n"
             f"Type: {el.category}\n"
             f"Current Status: {el.status}\n"
             f"Last Triggered: {triggered}\n"
@@ -311,7 +362,10 @@ class MainWindow(QMainWindow):
 
     def refresh(self) -> None:
         if self.selected_room_id not in self.service.state.rooms:
-            return
+            room_ids = list(self.service.state.rooms.keys())
+            if not room_ids:
+                return
+            self.selected_room_id = room_ids[0]
         room = self.service.state.rooms[self.selected_room_id]
         mins, secs = divmod(room.elapsed_seconds, 60)
         self.timer_label.setText(f"{mins:02}:{secs:02}")

@@ -7,6 +7,7 @@ from datetime import datetime
 from PySide6.QtCore import QObject, QTimer, Signal
 
 from .models import DeviceState, Event, Room, RoomHealth, Severity, ShowElement
+from .pack_loader import load_immersepack_zip
 from .sample_data import build_devices, build_rooms, build_show_elements
 
 
@@ -32,6 +33,17 @@ class MockCommandService(QObject):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._timer.start(1000)
+
+    def load_pack(self, pack_path: str) -> None:
+        pack = load_immersepack_zip(pack_path)
+        self.state.rooms = {room.id: room for room in pack.rooms}
+        self.state.devices = {device.id: device for device in pack.devices}
+        self.state.show_elements = {element.id: element for element in pack.show_elements}
+        self.state.events.clear()
+
+        default_room = next(iter(self.state.rooms), "")
+        self._log(default_room, f"Loaded immerse pack: {pack_path}")
+        self.state_changed.emit()
 
     def _log(self, room_id: str, message: str, severity: Severity = Severity.INFO) -> None:
         event = Event(datetime.now(), room_id, message, severity)
