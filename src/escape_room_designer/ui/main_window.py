@@ -48,6 +48,7 @@ class MainWindow(QMainWindow):
         self.current_project = EscapeProject(project_id="project-001", name="Untitled IMMERSE Project")
         self.current_project_dir: Path | None = None
         self.clipboard_payload = None
+        self._updating_inspector = False
 
         self.nav = QListWidget(); self.stack = QStackedWidget()
         self.dashboard_page = DashboardPage()
@@ -87,6 +88,7 @@ class MainWindow(QMainWindow):
         self.dashboard_page.open_btn.clicked.connect(self.open_project)
         self.projects_page.on_open_project_file = self._open_project_file
         self.devices_page.set_inspector_callback(self.update_inspector)
+        self.layout_page.set_inspector_callback(self.update_inspector)
 
         self._load_demo_project()
         self.autosave_timer = QTimer(self); self.autosave_timer.timeout.connect(self._autosave); self.autosave_timer.start(120000)
@@ -98,7 +100,7 @@ class MainWindow(QMainWindow):
                 break
 
     def _build_docks(self):
-        d = QDockWidget("Inspector", self); self.inspector = QTableWidget(0,2); self.inspector.setHorizontalHeaderLabels(["Property","Value"]); d.setWidget(self.inspector); self.addDockWidget(Qt.RightDockWidgetArea, d)
+        d = QDockWidget("Inspector", self); self.inspector = QTableWidget(0,2); self.inspector.setHorizontalHeaderLabels(["Property","Value"]); self.inspector.itemChanged.connect(self._inspector_item_changed); d.setWidget(self.inspector); self.addDockWidget(Qt.RightDockWidgetArea, d)
         d2 = QDockWidget("System Log", self); self.log_console = QPlainTextEdit(); self.log_console.setReadOnly(True); d2.setWidget(self.log_console); self.addDockWidget(Qt.BottomDockWidgetArea, d2)
 
     def _build_menu(self):
@@ -120,9 +122,23 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+0"), self, activated=self.zoom_reset)
 
     def update_inspector(self, payload: dict[str, str]):
+        self._updating_inspector = True
         self.inspector.setRowCount(0)
         for k,v in payload.items():
             r=self.inspector.rowCount(); self.inspector.insertRow(r); self.inspector.setItem(r,0,QTableWidgetItem(k)); self.inspector.setItem(r,1,QTableWidgetItem(str(v)))
+        self._updating_inspector = False
+
+
+    def _inspector_item_changed(self, item):
+        if self._updating_inspector or item.column() != 1:
+            return
+        key_item = self.inspector.item(item.row(), 0)
+        if not key_item:
+            return
+        key = key_item.text()
+        page = self.stack.currentWidget()
+        if hasattr(page, "update_selected_property"):
+            page.update_selected_property(key, item.text())
 
     def _editable_page(self):
         p=self.stack.currentWidget(); return p if hasattr(p,'copy_selection') else None

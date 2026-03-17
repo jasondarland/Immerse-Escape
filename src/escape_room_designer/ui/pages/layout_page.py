@@ -1,18 +1,21 @@
-"""Visual layout editor with object library and multi-room support."""
+"""Visual layout editor with robust drag/drop library and click-to-place fallback."""
 from __future__ import annotations
 
+import json
 import uuid
 
-from PySide6.QtCore import Qt, QMimeData
-from PySide6.QtGui import QDrag
+from PySide6.QtCore import QMimeData, QPoint, Qt
+from PySide6.QtGui import QAction, QDrag
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QInputDialog,
+    QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QPushButton,
+    QMenu,
+    QMessageBox,
     QTabWidget,
     QToolBar,
     QVBoxLayout,
@@ -38,37 +41,82 @@ LIBRARY = {
 
 
 class LibraryList(QListWidget):
+    mime_type = "application/x-immerse-layout-item"
+
+    def __init__(self):
+        super().__init__()
+        self.setDragEnabled(True)
+        self.setDefaultDropAction(Qt.DropAction.CopyAction)
+
     def startDrag(self, supportedActions):
         item = self.currentItem()
         if not item:
             return
+        payload = item.data(Qt.ItemDataRole.UserRole)
         mime = QMimeData()
-        mime.setText(item.data(Qt.ItemDataRole.UserRole))
+        mime.setData(self.mime_type, json.dumps(payload).encode("utf-8"))
+        mime.setText(payload["name"])
         drag = QDrag(self)
         drag.setMimeData(mime)
         drag.exec(Qt.DropAction.CopyAction)
 
 
 class LayoutDropView(ZoomableGraphicsView):
-    def __init__(self, scene):
+    mime_type = "application/x-immerse-layout-item"
+
+    def __init__(self, scene: LayoutScene, page):
         super().__init__(scene)
+        self.page = page
         self.setAcceptDrops(True)
+        self.viewport().setAcceptDrops(True)
+        self.setMouseTracking(True)
+
+    def _decode_payload(self, event) -> dict | None:
+        md = event.mimeData()
+        if md.hasFormat(self.mime_type):
+            try:
+                return json.loads(bytes(md.data(self.mime_type)).decode("utf-8"))
+            except Exception:
+                return None
+        return None
 
     def dragEnterEvent(self, event):
-        if event.mimeData().hasText():
+        if self._decode_payload(event):
             event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
+            return
+        super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if self._decode_payload(event):
+            event.acceptProposedAction()
+            return
+        super().dragMoveEvent(event)
 
     def dropEvent(self, event):
-        data = event.mimeData().text().split("|", 1)
-        if len(data) == 2:
-            category, name = data
+        payload = self._decode_payload(event)
+        if payload:
             pos = self.mapToScene(event.position().toPoint())
-            self.scene().add_layout_object(name.lower(), pos.x(), pos.y(), name=name, category=category)
+            self.page.place_payload(payload, pos)
             event.acceptProposedAction()
             return
         super().dropEvent(event)
+
+    def mousePressEvent(self, event):
+        if self.page.pending_payload is not None and event.button() == Qt.MouseButton.LeftButton:
+            pos = self.mapToScene(event.position().toPoint())
+            self.page.place_payload(self.page.pending_payload, pos)
+            self.page.clear_pending_placement()
+            return
+        super().mousePressEvent(event)
+
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+        menu.addAction("Duplicate", lambda: self.scene().duplicate_selected())
+        menu.addAction("Delete", lambda: self.scene().delete_selected())
+        menu.addAction("Bring to Front", lambda: self.scene().bring_to_front())
+        menu.addAction("Send to Back", lambda: self.scene().send_to_back())
+        menu.addAction("Align Left", lambda: self.scene().align_selected_left())
+        menu.exec(event.globalPos())
 
 
 class LayoutPage(QWidget):
@@ -76,17 +124,21 @@ class LayoutPage(QWidget):
         super().__init__()
         self.room_tabs = QTabWidget()
         self._scenes: dict[str, LayoutScene] = {}
+        self.pending_payload: dict | None = None
+        self._inspector_callback = None
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
 
         left = QVBoxLayout()
-        self.search = QLineEdit()
-        self.search.setPlaceholderText("Search library...")
-        self.search.textChanged.connect(self.populate_library)
+        self.search = QLineEdit(); self.search.setPlaceholderText("Search library..."); self.search.textChanged.connect(self.populate_library)
         self.library = LibraryList()
+        self.library.itemDoubleClicked.connect(self._activate_click_place)
+        self.library.itemClicked.connect(self._activate_click_place)
+        self.place_status = QLabel("Placement mode: drag-and-drop")
         left.addWidget(self.search)
         left.addWidget(self.library, 1)
+        left.addWidget(self.place_status)
         self.populate_library()
 
         self.toolbar = QToolBar("Layout Tools")
@@ -95,9 +147,15 @@ class LayoutPage(QWidget):
         self.toolbar.addAction("Remove Room", self.remove_current_room)
         self.toolbar.addAction("Set Background", self.pick_background)
         self.toolbar.addAction("Set Image", self.pick_image_for_selected)
+        self.toolbar.addSeparator()
+        self.snap_action = QAction("Snap to Grid", self); self.snap_action.setCheckable(True); self.snap_action.setChecked(True); self.snap_action.toggled.connect(self._toggle_snap)
+        self.toolbar.addAction(self.snap_action)
         self.toolbar.addAction("Align Left", lambda: self.current_scene().align_selected_left())
         self.toolbar.addAction("Bring Front", lambda: self.current_scene().bring_to_front())
         self.toolbar.addAction("Send Back", lambda: self.current_scene().send_to_back())
+        self.toolbar.addAction("Duplicate", lambda: self.current_scene().duplicate_selected())
+        self.toolbar.addAction("Delete", lambda: self.current_scene().delete_selected())
+        self.toolbar.addSeparator()
         self.toolbar.addAction("Zoom +", lambda: self.current_view().zoom_in())
         self.toolbar.addAction("Zoom -", lambda: self.current_view().zoom_out())
         self.toolbar.addAction("Reset Zoom", lambda: self.current_view().zoom_reset())
@@ -108,21 +166,64 @@ class LayoutPage(QWidget):
 
         self.add_room("Room 1")
 
+    def set_inspector_callback(self, callback):
+        self._inspector_callback = callback
+
     def populate_library(self):
         q = self.search.text().strip().lower()
         self.library.clear()
         for cat, items in LIBRARY.items():
+            header = QListWidgetItem(f"— {cat} —")
+            header.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.library.addItem(header)
             for name in items:
                 if q and q not in name.lower() and q not in cat.lower():
                     continue
-                it = QListWidgetItem(f"[{cat}] {name}")
-                it.setData(Qt.ItemDataRole.UserRole, f"{cat}|{name}")
+                payload = {
+                    "category": cat,
+                    "type": name.lower(),
+                    "name": name,
+                    "subtype": name,
+                    "default_state": "idle",
+                    "default_style": {},
+                    "default_size": [70, 70],
+                    "linked_device_id": "",
+                    "linked_puzzle_id": "",
+                }
+                it = QListWidgetItem(f"  {name}")
+                it.setData(Qt.ItemDataRole.UserRole, payload)
+                it.setToolTip(f"Drag {name} to canvas")
                 self.library.addItem(it)
+
+    def _activate_click_place(self, item):
+        payload = item.data(Qt.ItemDataRole.UserRole)
+        if not payload:
+            return
+        self.pending_payload = payload
+        self.place_status.setText(f"Placement mode: click canvas to place '{payload['name']}'")
+
+    def clear_pending_placement(self):
+        self.pending_payload = None
+        self.place_status.setText("Placement mode: drag-and-drop")
+
+    def place_payload(self, payload: dict, pos):
+        scene = self.current_scene()
+        item = scene.add_layout_object(payload["type"], pos.x(), pos.y(), name=payload["name"], category=payload["category"])
+        item.obj.metadata.update(
+            {
+                "subtype": payload.get("subtype", payload["name"]),
+                "state": payload.get("default_state", "idle"),
+                "linked_device_id": payload.get("linked_device_id", ""),
+                "linked_puzzle_id": payload.get("linked_puzzle_id", ""),
+                "room_id": self.current_view().property("room_id"),
+            }
+        )
 
     def _create_room_view(self, room_name: str, room_id: str | None = None):
         rid = room_id or str(uuid.uuid4())
         scene = LayoutScene()
-        view = LayoutDropView(scene)
+        scene.selected_object_changed.connect(self._on_selected_object_changed)
+        view = LayoutDropView(scene, self)
         view.setProperty("room_id", rid)
         self._scenes[rid] = scene
         self.room_tabs.addTab(view, room_name)
@@ -138,6 +239,7 @@ class LayoutPage(QWidget):
 
     def remove_current_room(self):
         if self.room_tabs.count() <= 1:
+            QMessageBox.information(self, "Layout", "At least one room is required.")
             return
         idx = self.room_tabs.currentIndex()
         wid = self.room_tabs.widget(idx)
@@ -160,6 +262,37 @@ class LayoutPage(QWidget):
         fn, _ = QFileDialog.getOpenFileName(self, "Object Image", "", "Images (*.png *.jpg *.jpeg *.bmp)")
         if fn:
             self.current_scene().set_image_for_selected(fn)
+
+    def _toggle_snap(self, enabled: bool):
+        self.current_scene().set_snap(enabled)
+
+    def _on_selected_object_changed(self, obj):
+        if not self._inspector_callback:
+            return
+        if not obj:
+            self._inspector_callback({})
+            return
+        payload = {
+            "name": obj.name,
+            "id": obj.object_id,
+            "category": obj.metadata.get("category", ""),
+            "type": obj.object_type,
+            "room": obj.metadata.get("room_id", ""),
+            "x": obj.x,
+            "y": obj.y,
+            "width": obj.width,
+            "height": obj.height,
+            "rotation": obj.rotation,
+            "notes": obj.metadata.get("notes", ""),
+            "tags": ",".join(obj.metadata.get("tags", [])) if isinstance(obj.metadata.get("tags", []), list) else obj.metadata.get("tags", ""),
+            "linked_device_id": obj.metadata.get("linked_device_id", ""),
+            "linked_puzzle_id": obj.metadata.get("linked_puzzle_id", ""),
+            "state": obj.metadata.get("state", ""),
+        }
+        self._inspector_callback(payload)
+
+    def update_selected_property(self, key: str, value: str):
+        self.current_scene().update_selected_property(key, value)
 
     def export_rooms(self) -> list[RoomLayout]:
         rooms = []
