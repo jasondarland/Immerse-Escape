@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
@@ -24,7 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .models import RoomHealth, Severity, ShowElement
+from .models import Severity, ShowElement
 from .services import MockCommandService
 
 
@@ -104,6 +102,7 @@ class MainWindow(QMainWindow):
         wf_layout = QVBoxLayout(workflow_box)
         self.notes_edit = QTextEdit()
         self.notes_edit.setPlaceholderText("Operator notes...")
+        self.notes_edit.textChanged.connect(self._save_notes)
         self.issue_edit = QLineEdit()
         self.issue_edit.setPlaceholderText("Active issue / flag")
         self.issue_edit.editingFinished.connect(self._save_issue)
@@ -244,12 +243,23 @@ class MainWindow(QMainWindow):
         layout.addWidget(btn, row, col)
 
     def _room_changed(self) -> None:
-        self.selected_room_id = self.room_selector.currentData()
+        room_id = self.room_selector.currentData()
+        if not room_id:
+            return
+        self.selected_room_id = room_id
         room = self.service.state.rooms[self.selected_room_id]
         self.notes_edit.setPlainText(room.notes)
         self.refresh()
 
+    def _save_notes(self) -> None:
+        if self.selected_room_id not in self.service.state.rooms:
+            return
+        room = self.service.state.rooms[self.selected_room_id]
+        room.notes = self.notes_edit.toPlainText().strip()
+
     def _save_issue(self) -> None:
+        if self.selected_room_id not in self.service.state.rooms:
+            return
         room = self.service.state.rooms[self.selected_room_id]
         room.active_issue = self.issue_edit.text().strip()
         if room.active_issue:
@@ -267,7 +277,12 @@ class MainWindow(QMainWindow):
         row = self.elements_table.currentRow()
         if row < 0:
             return
-        element_id = self.elements_table.item(row, 0).data(Qt.UserRole)
+        item = self.elements_table.item(row, 0)
+        if not item:
+            return
+        element_id = item.data(Qt.UserRole)
+        if not element_id:
+            return
         self.selected_element_id = element_id
         el = self.service.state.show_elements[element_id]
         triggered = el.last_triggered.strftime("%H:%M:%S") if el.last_triggered else "Never"
@@ -291,6 +306,8 @@ class MainWindow(QMainWindow):
             self.event_log.takeItem(self.event_log.count() - 1)
 
     def refresh(self) -> None:
+        if self.selected_room_id not in self.service.state.rooms:
+            return
         room = self.service.state.rooms[self.selected_room_id]
         mins, secs = divmod(room.elapsed_seconds, 60)
         self.timer_label.setText(f"{mins:02}:{secs:02}")
@@ -354,6 +371,8 @@ class MainWindow(QMainWindow):
                 continue
             rows.append(el)
 
+        self.elements_table.blockSignals(True)
+        self.elements_table.clearContents()
         self.elements_table.setRowCount(len(rows))
         for i, el in enumerate(rows):
             cue_item = QTableWidgetItem(el.name)
@@ -385,9 +404,22 @@ class MainWindow(QMainWindow):
             fire_btn.clicked.connect(make_fire(el))
             self.elements_table.setCellWidget(i, 4, fire_btn)
 
-        if rows and not self.selected_element_id:
-            self.elements_table.selectRow(0)
+        selected_row = -1
+        if self.selected_element_id:
+            for i, el in enumerate(rows):
+                if el.id == self.selected_element_id:
+                    selected_row = i
+                    break
+        if selected_row < 0 and rows:
+            selected_row = 0
+
+        self.elements_table.blockSignals(False)
+        if selected_row >= 0:
+            self.elements_table.selectRow(selected_row)
             self._element_selected()
+        else:
+            self.selected_element_id = ""
+            self.details.clear()
 
     @staticmethod
     def _wrap(title: str, widget: QWidget) -> QGroupBox:

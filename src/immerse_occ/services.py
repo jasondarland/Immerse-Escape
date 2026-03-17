@@ -59,6 +59,8 @@ class MockCommandService(QObject):
         self.state_changed.emit()
 
     def execute(self, room_id: str, command: str, payload: str = "") -> None:
+        if room_id not in self.state.rooms:
+            return
         room = self.state.rooms[room_id]
         cmd = command.lower()
 
@@ -127,6 +129,8 @@ class MockCommandService(QObject):
         self.state_changed.emit()
 
     def trigger_element(self, element_id: str) -> None:
+        if element_id not in self.state.show_elements:
+            return
         el = self.state.show_elements[element_id]
         el.status = "triggered"
         el.last_triggered = datetime.now()
