@@ -10,6 +10,7 @@ A desktop MVP for designing and programming escape room experiences.
 - Puzzle flow node editor (graph-style puzzle relationships) with copy/paste shortcuts
 - Logic editor framework (input/logic/output nodes) with copy/paste shortcuts
 - Keyboard editing shortcuts (Ctrl+C/Ctrl+V/Ctrl+X/Delete/Ctrl+D) across editors
+- Zoom controls (toolbar + Ctrl+mouse wheel + Ctrl+Plus/Minus/0) on Layout/Puzzle/Logic canvases
 - Scalable architecture for future hardware integrations
 
 ## Run

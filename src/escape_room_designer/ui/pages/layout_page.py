@@ -4,10 +4,8 @@ from __future__ import annotations
 import uuid
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (
     QFileDialog,
-    QGraphicsView,
     QHBoxLayout,
     QInputDialog,
     QTabWidget,
@@ -17,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from escape_room_designer.models.project_model import RoomLayout
 from escape_room_designer.ui.widgets.layout_scene import LayoutScene
+from escape_room_designer.ui.widgets.zoomable_view import ZoomableGraphicsView
 
 
 class LayoutPage(QWidget):
@@ -32,6 +31,10 @@ class LayoutPage(QWidget):
         self.toolbar.setOrientation(Qt.Orientation.Vertical)
         self.toolbar.addAction("Add Room", self.add_room)
         self.toolbar.addAction("Remove Room", self.remove_current_room)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction("Zoom In", lambda: self.current_view().zoom_in())
+        self.toolbar.addAction("Zoom Out", lambda: self.current_view().zoom_out())
+        self.toolbar.addAction("Reset Zoom", lambda: self.current_view().zoom_reset())
         self.toolbar.addSeparator()
         self.toolbar.addAction("Set Background", self.pick_background)
         self.toolbar.addAction("Set Image To Selected", self.pick_image_for_selected)
@@ -50,9 +53,7 @@ class LayoutPage(QWidget):
     def _create_room_view(self, room_name: str, room_id: str | None = None) -> None:
         rid = room_id or str(uuid.uuid4())
         scene = LayoutScene()
-        view = QGraphicsView(scene)
-        view.setRenderHints(view.renderHints() | QPainter.RenderHint.Antialiasing)
-        view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+        view = ZoomableGraphicsView(scene)
         self._scenes[rid] = scene
         self.room_tabs.addTab(view, room_name)
         self.room_tabs.setCurrentWidget(view)
@@ -76,9 +77,11 @@ class LayoutPage(QWidget):
         if room_id in self._scenes:
             del self._scenes[room_id]
 
+    def current_view(self) -> ZoomableGraphicsView:
+        return self.room_tabs.currentWidget()
+
     def current_scene(self) -> LayoutScene:
-        widget = self.room_tabs.currentWidget()
-        room_id = widget.property("room_id")
+        room_id = self.current_view().property("room_id")
         return self._scenes[room_id]
 
     def pick_background(self) -> None:

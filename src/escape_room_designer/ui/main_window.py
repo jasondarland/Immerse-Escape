@@ -122,6 +122,9 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence.StandardKey.Delete, self, activated=self.delete_selection)
         QShortcut(QKeySequence.StandardKey.Cut, self, activated=self.cut_selection)
         QShortcut(QKeySequence("Ctrl+D"), self, activated=self.duplicate_selection)
+        QShortcut(QKeySequence.ZoomIn, self, activated=self.zoom_in)
+        QShortcut(QKeySequence.ZoomOut, self, activated=self.zoom_out)
+        QShortcut(QKeySequence("Ctrl+0"), self, activated=self.zoom_reset)
 
     def _editable_page(self):
         page = self.stack.currentWidget()
@@ -155,6 +158,22 @@ class MainWindow(QMainWindow):
     def duplicate_selection(self) -> None:
         self.copy_selection()
         self.paste_selection()
+
+
+    def zoom_in(self) -> None:
+        page = self.stack.currentWidget()
+        if hasattr(page, "zoom_in"):
+            page.zoom_in()
+
+    def zoom_out(self) -> None:
+        page = self.stack.currentWidget()
+        if hasattr(page, "zoom_out"):
+            page.zoom_out()
+
+    def zoom_reset(self) -> None:
+        page = self.stack.currentWidget()
+        if hasattr(page, "zoom_reset"):
+            page.zoom_reset()
 
     def _load_demo_project(self) -> None:
         demo_file = Path(__file__).resolve().parents[1] / "demo_data" / "demo_project.json"
