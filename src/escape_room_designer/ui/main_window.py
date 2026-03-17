@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 from escape_room_designer.models.project_model import EscapeProject
 from escape_room_designer.services.export_service import ImmersePackExporter
 from escape_room_designer.services.project_service import ProjectService
+from escape_room_designer.services.validation_service import RuntimePackValidator
 from escape_room_designer.ui.pages.base_pages import PlaceholderPage
 from escape_room_designer.ui.pages.devices_page import DevicesPage
 from escape_room_designer.ui.pages.layout_page import LayoutPage
@@ -39,7 +40,8 @@ class MainWindow(QMainWindow):
 
         self.service = ProjectService()
         self.pack_exporter = ImmersePackExporter()
-        self.current_project = EscapeProject(name="Untitled IMMERSE Project")
+        self.validator = RuntimePackValidator()
+        self.current_project = EscapeProject(project_id="project-001", name="Untitled IMMERSE Project")
         self.current_project_dir: Path | None = None
         self.clipboard_payload = None
 
@@ -212,7 +214,7 @@ class MainWindow(QMainWindow):
         self.log_console.appendPlainText(message)
 
     def new_project(self) -> None:
-        self.current_project = EscapeProject(name="New IMMERSE Attraction")
+        self.current_project = EscapeProject(project_id="project-new", name="New IMMERSE Attraction")
         self.current_project_dir = None
         self._apply_project_to_ui()
         self.log("Created new project.")
@@ -243,6 +245,13 @@ class MainWindow(QMainWindow):
 
     def export_project(self) -> None:
         self._pull_ui_to_project()
+        validation = self.validator.validate(self.current_project)
+        for issue in validation.issues:
+            self.log(f"[{issue.level.upper()}] {issue.code}: {issue.message}")
+        if not validation.passed:
+            QMessageBox.warning(self, "Validation Failed", "Cannot export: fix validation errors shown in log.")
+            return
+
         default = str((self.current_project_dir or Path.cwd()) / "IMMERSEPACK.ZIP")
         filename, _ = QFileDialog.getSaveFileName(self, "Export IMMERSEPACK", default, "ZIP Files (*.zip)")
         if not filename:
@@ -252,7 +261,7 @@ class MainWindow(QMainWindow):
             output = output.with_suffix(".zip")
         if output.name.upper() != "IMMERSEPACK.ZIP":
             output = output.with_name("IMMERSEPACK.ZIP")
-        created = self.pack_exporter.export(self.current_project, output)
+        created = self.pack_exporter.export(self.current_project, output, validation)
         self.log(f"Exported IMMERSEPACK: {created}")
         QMessageBox.information(self, "Export Complete", f"Created {created}")
 

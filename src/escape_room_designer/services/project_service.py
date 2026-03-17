@@ -48,7 +48,8 @@ class ProjectService:
 
     def _ensure_project_dirs(self, target_dir: Path) -> None:
         folders = [
-            "layout",
+            "project",
+            "layout/backgrounds",
             "puzzles",
             "logic",
             "timeline",
@@ -56,6 +57,7 @@ class ProjectService:
             "media/video",
             "media/images",
             "devices",
+            "operator",
             "reports",
             "notes",
             "config",

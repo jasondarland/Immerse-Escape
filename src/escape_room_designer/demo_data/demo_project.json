@@ -1,8 +1,11 @@
 {
+  "project_id": "project-forgotten-lab",
   "name": "Demo - IMMERSE Forgotten Laboratory",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "created_at": "2026-01-01T10:00:00",
   "updated_at": "2026-01-01T10:00:00",
+  "startup_scene": "room-lab-a",
+  "default_timeline": "main",
   "layouts": [
     {
       "room_id": "room-lab-a",
@@ -23,22 +26,28 @@
           "color": "#5f7aa6",
           "layer": "architecture",
           "image_path": "",
-          "metadata": {"locked": true}
+          "metadata": {"locked": true, "zone_id": "entry"}
         }
       ]
     }
   ],
   "devices": [
     {
-      "runtime_id": "dev-door-maglock-01",
+      "id": "dev-door-maglock-01",
       "name": "Door Maglock 01",
-      "device_type": "maglock",
+      "type": "maglock",
+      "subtype": "electromagnetic",
       "room_id": "room-lab-a",
-      "node_assignment": "Node-GPIO-A",
+      "zone_id": "entry",
+      "node_id": "node-gpio-a",
+      "protocol": "gpio",
       "address": "relay:1",
-      "io_mapping": "out:1",
-      "metadata": {"failsafe": true},
-      "state": "online"
+      "capabilities": ["lock", "unlock"],
+      "default_state": "locked",
+      "fail_state": "unlocked",
+      "tags": ["safety", "door"],
+      "notes": "Main entry lock",
+      "simulated_properties": {"latency_ms": 20}
     }
   ],
   "puzzle_nodes": [
@@ -49,30 +58,64 @@
     {"source": "p1", "target": "p2", "label": "Prerequisite"}
   ],
   "logic_nodes": [
-    {"node_id": "l1", "node_type": "input", "label": "RFID Read", "x": -260, "y": -20, "data": {}},
-    {"node_id": "l2", "node_type": "logic", "label": "AND Gate", "x": 0, "y": -20, "data": {}},
-    {"node_id": "l3", "node_type": "output", "label": "Unlock Maglock", "x": 280, "y": -20, "data": {}}
+    {"node_id": "l1", "node_type": "input_event", "label": "RFID Read", "x": -260, "y": -20, "data": {}},
+    {"node_id": "l2", "node_type": "and", "label": "AND Gate", "x": 0, "y": -20, "data": {}},
+    {"node_id": "l3", "node_type": "action_dispatch", "label": "Unlock Maglock", "x": 280, "y": -20, "data": {}}
   ],
   "logic_edges": [
     {"source": "l1", "target": "l2", "label": ""},
     {"source": "l2", "target": "l3", "label": ""}
   ],
+  "states": [
+    {"key": "puzzle_1_complete", "default": false, "persist": true},
+    {"key": "door_lab_a_locked", "default": true, "persist": true}
+  ],
   "timeline": [
     {
-      "cue_id": "cue-1",
+      "id": "cue-1",
       "track": "lighting",
-      "timecode_ms": 0,
-      "action": "set_look",
+      "start_time": 0,
+      "duration": 10000,
+      "trigger_mode": "absolute_time",
       "target": "room-lab-a",
-      "payload": {"look": "preset_start"}
+      "action": "set_look",
+      "parameters": {"look": "preset_start"},
+      "preconditions": [],
+      "follow_actions": []
     }
   ],
   "media": [
-    {"name": "Alarm Stinger", "type": "audio", "path": ""}
+    {
+      "asset_id": "alarm-stinger",
+      "file_path": "",
+      "path": "",
+      "media_type": "audio",
+      "duration": 4.2,
+      "target_outputs": ["speaker_zone_main"],
+      "playback_mode": "trigger",
+      "loop": false,
+      "volume": 0.8,
+      "fade_in": 0.0,
+      "fade_out": 0.2,
+      "sync_group": "",
+      "preloading_rules": "on_demand"
+    }
   ],
   "operator_controls": [
-    {"id": "start_game", "label": "Start Game", "endpoint": "operator/start"},
-    {"id": "reset", "label": "Reset", "endpoint": "operator/reset"}
+    {"control_id": "start_game", "label": "Start Game", "action_type": "runtime_command", "target": "show", "confirmation_required": false, "permission_level": "operator", "runtime_effect": "start"},
+    {"control_id": "emergency_unlock", "label": "Emergency Unlock", "action_type": "safety", "target": "doors", "confirmation_required": true, "permission_level": "lead", "runtime_effect": "unlock_all"}
   ],
-  "notes": "Demo project showcasing IMMERSEPACK export MVP capabilities."
+  "runtime_config": {
+    "startup_logic": "event_graph_boot",
+    "watchdog_enabled": true,
+    "watchdog_timeout_ms": 3000,
+    "heartbeat_interval_ms": 250,
+    "logging_verbosity": "info",
+    "fail_safe_behavior": "unlock_safe_devices",
+    "boot_scene": "room-lab-a",
+    "reset_behavior": "soft_reset",
+    "simulation_defaults": {"enabled": true},
+    "network_discovery": {"enabled": true, "method": "mdns"}
+  },
+  "notes": "Demo project showcasing IMMERSE Runtime pack export MVP capabilities."
 }

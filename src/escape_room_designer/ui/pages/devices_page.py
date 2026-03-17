@@ -27,26 +27,29 @@ class DevicesPage(QWidget):
         left = QVBoxLayout()
         right = QVBoxLayout()
 
-        self.table = QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels(["Runtime ID", "Name", "Type", "Room", "Address", "Node"])
+        self.table = QTableWidget(0, 8)
+        self.table.setHorizontalHeaderLabels(["ID", "Name", "Type", "Subtype", "Room", "Node", "Protocol", "Address"])
         self.table.itemSelectionChanged.connect(self._on_selection_changed)
-
         left.addWidget(self.table)
 
         form = QFormLayout()
         self.name = QLineEdit()
         self.dtype = QLineEdit("button")
+        self.subtype = QLineEdit("generic")
         self.room = QLineEdit("room-1")
+        self.node = QLineEdit("node-gpio-1")
+        self.protocol = QLineEdit("gpio")
         self.address = QLineEdit("GPIO:1")
-        self.node = QLineEdit("Node-GPIO")
-        self.io_map = QLineEdit("in:1")
+        self.zone = QLineEdit("default")
 
         form.addRow("Name", self.name)
         form.addRow("Type", self.dtype)
+        form.addRow("Subtype", self.subtype)
         form.addRow("Room", self.room)
-        form.addRow("Address", self.address)
+        form.addRow("Zone", self.zone)
         form.addRow("Node", self.node)
-        form.addRow("I/O Mapping", self.io_map)
+        form.addRow("Protocol", self.protocol)
+        form.addRow("Address", self.address)
 
         add_btn = QPushButton("Add Device")
         add_btn.clicked.connect(self.add_device)
@@ -71,21 +74,23 @@ class DevicesPage(QWidget):
         if row < 0:
             self._inspector_callback({})
             return
-        payload = {
-            "runtime_id": self.table.item(row, 0).text(),
-            "name": self.table.item(row, 1).text(),
-            "type": self.table.item(row, 2).text(),
-            "room": self.table.item(row, 3).text(),
-            "address": self.table.item(row, 4).text(),
-            "node": self.table.item(row, 5).text(),
-        }
+        payload = {self.table.horizontalHeaderItem(c).text().lower(): self.table.item(row, c).text() for c in range(self.table.columnCount())}
         self._inspector_callback(payload)
 
     def add_device(self) -> None:
-        runtime_id = f"dev-{uuid.uuid4().hex[:8]}"
+        device_id = f"dev-{uuid.uuid4().hex[:8]}"
         row = self.table.rowCount()
         self.table.insertRow(row)
-        values = [runtime_id, self.name.text() or "Device", self.dtype.text(), self.room.text(), self.address.text(), self.node.text()]
+        values = [
+            device_id,
+            self.name.text() or "Device",
+            self.dtype.text(),
+            self.subtype.text(),
+            self.room.text(),
+            self.node.text(),
+            self.protocol.text(),
+            self.address.text(),
+        ]
         for col, value in enumerate(values):
             self.table.setItem(row, col, QTableWidgetItem(value))
 
@@ -99,14 +104,21 @@ class DevicesPage(QWidget):
         for row in range(self.table.rowCount()):
             devices.append(
                 Device(
-                    runtime_id=self.table.item(row, 0).text(),
+                    id=self.table.item(row, 0).text(),
                     name=self.table.item(row, 1).text(),
-                    device_type=self.table.item(row, 2).text(),
-                    room_id=self.table.item(row, 3).text(),
-                    address=self.table.item(row, 4).text(),
-                    node_assignment=self.table.item(row, 5).text(),
-                    io_mapping=self.io_map.text(),
-                    state="online",
+                    type=self.table.item(row, 2).text(),
+                    subtype=self.table.item(row, 3).text(),
+                    room_id=self.table.item(row, 4).text(),
+                    node_id=self.table.item(row, 5).text(),
+                    protocol=self.table.item(row, 6).text(),
+                    address=self.table.item(row, 7).text(),
+                    zone_id=self.zone.text() or "default",
+                    capabilities=["trigger", "state"],
+                    default_state="idle",
+                    fail_state="safe",
+                    tags=[],
+                    notes="",
+                    simulated_properties={"simulated": True},
                 )
             )
         return devices
@@ -116,6 +128,6 @@ class DevicesPage(QWidget):
         for device in devices:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            values = [device.runtime_id, device.name, device.device_type, device.room_id, device.address, device.node_assignment]
+            values = [device.id, device.name, device.type, device.subtype, device.room_id, device.node_id, device.protocol, device.address]
             for col, value in enumerate(values):
                 self.table.setItem(row, col, QTableWidgetItem(value))
