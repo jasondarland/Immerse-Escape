@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
     QDockWidget,
@@ -15,7 +16,6 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QStackedWidget,
     QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -37,6 +37,7 @@ class MainWindow(QMainWindow):
         self.service = ProjectService()
         self.current_project = EscapeProject(name="Untitled Escape Project")
         self.current_project_dir: Path | None = None
+        self.clipboard_payload = None
 
         self.nav = QListWidget()
         self.stack = QStackedWidget()
@@ -77,6 +78,7 @@ class MainWindow(QMainWindow):
 
         self._build_docks()
         self._build_menu()
+        self._setup_shortcuts()
         self._load_demo_project()
 
         self.autosave_timer = QTimer(self)
@@ -114,6 +116,46 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Save Project As", self.save_project_as)
         file_menu.addAction("Export Project", self.export_project)
 
+    def _setup_shortcuts(self) -> None:
+        QShortcut(QKeySequence.StandardKey.Copy, self, activated=self.copy_selection)
+        QShortcut(QKeySequence.StandardKey.Paste, self, activated=self.paste_selection)
+        QShortcut(QKeySequence.StandardKey.Delete, self, activated=self.delete_selection)
+        QShortcut(QKeySequence.StandardKey.Cut, self, activated=self.cut_selection)
+        QShortcut(QKeySequence("Ctrl+D"), self, activated=self.duplicate_selection)
+
+    def _editable_page(self):
+        page = self.stack.currentWidget()
+        return page if hasattr(page, "copy_selection") else None
+
+    def copy_selection(self) -> None:
+        page = self._editable_page()
+        if not page:
+            return
+        self.clipboard_payload = page.copy_selection()
+        self.log("Copied selection.")
+
+    def paste_selection(self) -> None:
+        page = self._editable_page()
+        if not page or not self.clipboard_payload:
+            return
+        page.paste_selection(self.clipboard_payload)
+        self.log("Pasted selection.")
+
+    def delete_selection(self) -> None:
+        page = self._editable_page()
+        if not page:
+            return
+        page.delete_selection()
+        self.log("Deleted selection.")
+
+    def cut_selection(self) -> None:
+        self.copy_selection()
+        self.delete_selection()
+
+    def duplicate_selection(self) -> None:
+        self.copy_selection()
+        self.paste_selection()
+
     def _load_demo_project(self) -> None:
         demo_file = Path(__file__).resolve().parents[1] / "demo_data" / "demo_project.json"
         if demo_file.exists():
@@ -122,12 +164,12 @@ class MainWindow(QMainWindow):
             self.log("Loaded bundled demo project.")
 
     def _apply_project_to_ui(self) -> None:
-        self.layout_page.scene.import_objects(self.current_project.layout)
+        self.layout_page.import_rooms(self.current_project.layouts)
         self.puzzle_page.scene.import_graph(self.current_project.puzzle_nodes, self.current_project.puzzle_edges)
         self.logic_page.scene.import_graph(self.current_project.logic_nodes, self.current_project.logic_edges)
 
     def _pull_ui_to_project(self) -> None:
-        self.current_project.layout = self.layout_page.scene.export_objects()
+        self.current_project.layouts = self.layout_page.export_rooms()
         p_nodes, p_edges = self.puzzle_page.scene.export_graph()
         l_nodes, l_edges = self.logic_page.scene.export_graph()
         self.current_project.puzzle_nodes = p_nodes

@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 
-from PySide6.QtCore import QPointF, QRectF
+from PySide6.QtCore import QRectF
 from PySide6.QtGui import QBrush, QColor, QPen
 from PySide6.QtWidgets import QGraphicsEllipseItem, QGraphicsItem, QGraphicsRectItem, QGraphicsScene, QGraphicsSimpleTextItem
 
@@ -48,8 +49,28 @@ class NodeScene(QGraphicsScene):
         self.addItem(item)
         return item
 
+    def selected_node_items(self) -> list[GraphNodeItem]:
+        return [item for item in self.selectedItems() if isinstance(item, GraphNodeItem)]
+
+    def copy_selected_payload(self) -> list[GraphNode]:
+        return [deepcopy(item.node) for item in self.selected_node_items()]
+
+    def paste_payload(self, payload: list[GraphNode], offset: int = 24) -> None:
+        for node in payload:
+            copied = deepcopy(node)
+            copied.node_id = str(uuid.uuid4())
+            copied.x += offset
+            copied.y += offset
+            self.addItem(GraphNodeItem(copied))
+
+    def delete_selected(self) -> None:
+        selected_ids = {item.node.node_id for item in self.selected_node_items()}
+        for item in self.selected_node_items():
+            self.removeItem(item)
+        self._edges = [e for e in self._edges if e.source not in selected_ids and e.target not in selected_ids]
+
     def connect_selected(self) -> None:
-        selected = [item for item in self.selectedItems() if isinstance(item, GraphNodeItem)]
+        selected = self.selected_node_items()
         if len(selected) != 2:
             return
         src, dst = selected

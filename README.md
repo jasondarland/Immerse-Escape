@@ -6,9 +6,10 @@ A desktop MVP for designing and programming escape room experiences.
 - Project-based workflow with save/load/export and demo project
 - Professional dark themed multi-page desktop UI
 - Sidebar navigation and dock panels (inspector + system log)
-- Visual layout editor (drag/drop scene items, layers, metadata)
-- Puzzle flow node editor (graph-style puzzle relationships)
-- Logic editor framework (input/logic/output nodes)
+- Visual layout editor with unlimited rooms, per-room backgrounds, and image-based props/devices
+- Puzzle flow node editor (graph-style puzzle relationships) with copy/paste shortcuts
+- Logic editor framework (input/logic/output nodes) with copy/paste shortcuts
+- Keyboard editing shortcuts (Ctrl+C/Ctrl+V/Ctrl+X/Delete/Ctrl+D) across editors
 - Scalable architecture for future hardware integrations
 
 ## Run

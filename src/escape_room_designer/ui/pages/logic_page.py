@@ -28,3 +28,12 @@ class LogicPage(QWidget):
 
         layout.addWidget(toolbar)
         layout.addWidget(self.view, 1)
+
+    def copy_selection(self):
+        return self.scene.copy_selected_payload()
+
+    def paste_selection(self, payload):
+        self.scene.paste_payload(payload)
+
+    def delete_selection(self):
+        self.scene.delete_selected()
