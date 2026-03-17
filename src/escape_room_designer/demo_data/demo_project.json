@@ -1,0 +1,69 @@
+{
+  "name": "Demo - Forgotten Laboratory",
+  "created_at": "2026-01-01T10:00:00",
+  "updated_at": "2026-01-01T10:00:00",
+  "layout": [
+    {
+      "object_id": "obj-wall-1",
+      "object_type": "wall",
+      "name": "North Wall",
+      "x": -200,
+      "y": -140,
+      "width": 600,
+      "height": 20,
+      "rotation": 0,
+      "color": "#4d6a91",
+      "layer": "architecture",
+      "metadata": {}
+    },
+    {
+      "object_id": "obj-door-1",
+      "object_type": "door",
+      "name": "Airlock Door",
+      "x": 60,
+      "y": -120,
+      "width": 90,
+      "height": 18,
+      "rotation": 0,
+      "color": "#5f7aa6",
+      "layer": "architecture",
+      "metadata": {"locked": true}
+    },
+    {
+      "object_id": "obj-prop-1",
+      "object_type": "prop",
+      "name": "Chemical Cabinet",
+      "x": -80,
+      "y": 20,
+      "width": 90,
+      "height": 120,
+      "rotation": 0,
+      "color": "#3f5b81",
+      "layer": "props",
+      "metadata": {}
+    }
+  ],
+  "puzzle_nodes": [
+    {"node_id": "p1", "node_type": "puzzle", "label": "Decode Formula", "x": -220, "y": -40, "data": {}},
+    {"node_id": "p2", "node_type": "puzzle", "label": "Unlock Reactor", "x": 60, "y": 40, "data": {}}
+  ],
+  "puzzle_edges": [
+    {"source": "p1", "target": "p2", "label": "Prerequisite"}
+  ],
+  "logic_nodes": [
+    {"node_id": "l1", "node_type": "input", "label": "RFID Read", "x": -260, "y": -20, "data": {}},
+    {"node_id": "l2", "node_type": "logic", "label": "AND Gate", "x": 0, "y": -20, "data": {}},
+    {"node_id": "l3", "node_type": "output", "label": "Unlock Maglock", "x": 280, "y": -20, "data": {}}
+  ],
+  "logic_edges": [
+    {"source": "l1", "target": "l2", "label": ""},
+    {"source": "l2", "target": "l3", "label": ""}
+  ],
+  "devices": [
+    {"name": "Door Maglock 01", "type": "maglock", "address": "relay:1", "zone": "Lab A"}
+  ],
+  "media": [
+    {"name": "Alarm Stinger", "type": "audio", "path": "media/audio/alarm_stinger.wav"}
+  ],
+  "notes": "Demo project showcasing MVP capabilities."
+}
