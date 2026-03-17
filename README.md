@@ -37,3 +37,8 @@ src/immerse_occ/
 
 ## Notes
 This MVP uses simulated runtime data and mock command dispatch while keeping architecture ready for integration with live show-control backends.
+
+## Crash Diagnostics
+If the application fails very early during startup, diagnostic information is written to:
+
+`~/.immerse_occ_startup.log`
