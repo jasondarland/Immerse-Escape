@@ -1,7 +1,9 @@
 {
   "project_id": "project-forgotten-lab",
-  "name": "Demo - IMMERSE Forgotten Laboratory",
-  "version": "0.2.0",
+  "name": "Demo - Forgotten Lab Campus",
+  "description": "Two-room demo escape experience with keypad + RFID + lock flow.",
+  "author": "IMMERSE Demo Team",
+  "version": "0.3.0",
   "created_at": "2026-01-01T10:00:00",
   "updated_at": "2026-01-01T10:00:00",
   "startup_scene": "room-lab-a",
@@ -14,108 +16,62 @@
       "scale_m_per_px": 0.01,
       "background_locked": true,
       "objects": [
-        {
-          "object_id": "obj-door-1",
-          "object_type": "door",
-          "name": "Airlock Door",
-          "x": 60,
-          "y": -120,
-          "width": 90,
-          "height": 18,
-          "rotation": 0,
-          "color": "#5f7aa6",
-          "layer": "architecture",
-          "image_path": "",
-          "metadata": {"locked": true, "zone_id": "entry"}
-        }
+        {"object_id": "obj-a-door", "object_type": "door", "name": "Airlock Door", "x": 80, "y": 30, "width": 90, "height": 18, "rotation": 0, "color": "#5f7aa6", "layer": "architecture", "image_path": "", "metadata": {"zone_id": "entry"}},
+        {"object_id": "obj-a-keypad", "object_type": "keypad", "name": "Main Keypad", "x": 180, "y": 50, "width": 30, "height": 45, "rotation": 0, "color": "#4d6a91", "layer": "devices", "image_path": "", "metadata": {"linked_device_id": "dev-keypad-01"}},
+        {"object_id": "obj-a-rfid", "object_type": "rfid reader", "name": "RFID Pad", "x": 240, "y": 80, "width": 35, "height": 35, "rotation": 0, "color": "#4d6a91", "layer": "devices", "image_path": "", "metadata": {"linked_device_id": "dev-rfid-01"}}
+      ]
+    },
+    {
+      "room_id": "room-lab-b",
+      "room_name": "Lab B",
+      "background_image": "",
+      "scale_m_per_px": 0.01,
+      "background_locked": true,
+      "objects": [
+        {"object_id": "obj-b-speaker", "object_type": "speaker", "name": "Ceiling Speaker", "x": 40, "y": 20, "width": 40, "height": 40, "rotation": 0, "color": "#4d6a91", "layer": "audio", "image_path": "", "metadata": {}},
+        {"object_id": "obj-b-light", "object_type": "dmx fixture", "name": "DMX Wash 1", "x": 150, "y": 30, "width": 34, "height": 34, "rotation": 0, "color": "#4d6a91", "layer": "lighting", "image_path": "", "metadata": {}},
+        {"object_id": "obj-b-maglock", "object_type": "mag lock", "name": "Final Door Lock", "x": 300, "y": 120, "width": 20, "height": 20, "rotation": 0, "color": "#4d6a91", "layer": "devices", "image_path": "", "metadata": {"linked_device_id": "dev-lock-01"}}
       ]
     }
   ],
   "devices": [
-    {
-      "id": "dev-door-maglock-01",
-      "name": "Door Maglock 01",
-      "type": "maglock",
-      "subtype": "electromagnetic",
-      "room_id": "room-lab-a",
-      "zone_id": "entry",
-      "node_id": "node-gpio-a",
-      "protocol": "gpio",
-      "address": "relay:1",
-      "capabilities": ["lock", "unlock"],
-      "default_state": "locked",
-      "fail_state": "unlocked",
-      "tags": ["safety", "door"],
-      "notes": "Main entry lock",
-      "simulated_properties": {"latency_ms": 20}
-    }
+    {"id": "dev-keypad-01", "name": "Keypad 01", "type": "keypad", "subtype": "4x4", "room_id": "room-lab-a", "zone_id": "entry", "node_id": "node-gpio-a", "protocol": "gpio", "address": "in:1", "capabilities": ["input"], "default_state": "idle", "fail_state": "idle", "tags": ["puzzle"], "notes": "Main keypad", "simulated_properties": {}},
+    {"id": "dev-rfid-01", "name": "RFID 01", "type": "rfid_reader", "subtype": "13.56mhz", "room_id": "room-lab-a", "zone_id": "entry", "node_id": "node-gpio-a", "protocol": "gpio", "address": "in:2", "capabilities": ["input"], "default_state": "idle", "fail_state": "idle", "tags": ["puzzle"], "notes": "RFID puzzle", "simulated_properties": {}},
+    {"id": "dev-lock-01", "name": "Final Maglock", "type": "maglock", "subtype": "electromagnetic", "room_id": "room-lab-b", "zone_id": "exit", "node_id": "node-gpio-b", "protocol": "gpio", "address": "out:1", "capabilities": ["lock", "unlock"], "default_state": "locked", "fail_state": "unlocked", "tags": ["safety"], "notes": "Final door", "simulated_properties": {}},
+    {"id": "dev-speaker-01", "name": "Speaker Zone A", "type": "speaker_zone", "subtype": "stereo", "room_id": "room-lab-b", "zone_id": "main", "node_id": "node-audio-1", "protocol": "udp", "address": "10.0.0.12:5000", "capabilities": ["play", "stop"], "default_state": "idle", "fail_state": "mute", "tags": ["audio"], "notes": "Ambient", "simulated_properties": {}},
+    {"id": "dev-light-01", "name": "Wash 1", "type": "dmx_fixture", "subtype": "wash", "room_id": "room-lab-b", "zone_id": "main", "node_id": "node-light-1", "protocol": "dmx", "address": "universe1:001", "capabilities": ["intensity", "color"], "default_state": "on", "fail_state": "blackout", "tags": ["lighting"], "notes": "Main wash", "simulated_properties": {}}
   ],
   "puzzle_nodes": [
-    {"node_id": "p1", "node_type": "puzzle", "label": "Decode Formula", "x": -220, "y": -40, "data": {}},
-    {"node_id": "p2", "node_type": "puzzle", "label": "Unlock Reactor", "x": 60, "y": 40, "data": {}}
+    {"node_id": "p1", "node_type": "puzzle", "label": "Enter keypad code", "x": -160, "y": -20, "data": {}},
+    {"node_id": "p2", "node_type": "puzzle", "label": "Scan RFID token", "x": 80, "y": 60, "data": {}}
   ],
-  "puzzle_edges": [
-    {"source": "p1", "target": "p2", "label": "Prerequisite"}
-  ],
+  "puzzle_edges": [{"source": "p1", "target": "p2", "label": "then"}],
   "logic_nodes": [
-    {"node_id": "l1", "node_type": "input_event", "label": "RFID Read", "x": -260, "y": -20, "data": {}},
-    {"node_id": "l2", "node_type": "and", "label": "AND Gate", "x": 0, "y": -20, "data": {}},
-    {"node_id": "l3", "node_type": "action_dispatch", "label": "Unlock Maglock", "x": 280, "y": -20, "data": {}}
+    {"node_id": "l1", "node_type": "input_event", "label": "Keypad Correct", "x": -260, "y": -20, "data": {}},
+    {"node_id": "l2", "node_type": "and", "label": "AND", "x": 0, "y": -20, "data": {}},
+    {"node_id": "l3", "node_type": "action_dispatch", "label": "Unlock Final Door", "x": 280, "y": -20, "data": {}}
   ],
-  "logic_edges": [
-    {"source": "l1", "target": "l2", "label": ""},
-    {"source": "l2", "target": "l3", "label": ""}
-  ],
+  "logic_edges": [{"source": "l1", "target": "l2", "label": ""}, {"source": "l2", "target": "l3", "label": ""}],
   "states": [
-    {"key": "puzzle_1_complete", "default": false, "persist": true},
-    {"key": "door_lab_a_locked", "default": true, "persist": true}
+    {"key": "puzzle_keypad_complete", "default": false, "persist": true},
+    {"key": "puzzle_rfid_complete", "default": false, "persist": true},
+    {"key": "door_final_locked", "default": true, "persist": true}
   ],
   "timeline": [
-    {
-      "id": "cue-1",
-      "track": "lighting",
-      "start_time": 0,
-      "duration": 10000,
-      "trigger_mode": "absolute_time",
-      "target": "room-lab-a",
-      "action": "set_look",
-      "parameters": {"look": "preset_start"},
-      "preconditions": [],
-      "follow_actions": []
-    }
+    {"id": "cue-1", "track": "Lighting", "start_time": 0, "duration": 120000, "trigger_mode": "absolute_time", "target": "dev-light-01", "action": "set_look", "parameters": {}, "preconditions": [], "follow_actions": []},
+    {"id": "cue-2", "track": "Audio", "start_time": 5000, "duration": 10000, "trigger_mode": "absolute_time", "target": "dev-speaker-01", "action": "play_intro", "parameters": {}, "preconditions": [], "follow_actions": []}
   ],
   "media": [
-    {
-      "asset_id": "alarm-stinger",
-      "file_path": "",
-      "path": "",
-      "media_type": "audio",
-      "duration": 4.2,
-      "target_outputs": ["speaker_zone_main"],
-      "playback_mode": "trigger",
-      "loop": false,
-      "volume": 0.8,
-      "fade_in": 0.0,
-      "fade_out": 0.2,
-      "sync_group": "",
-      "preloading_rules": "on_demand"
-    }
+    {"asset_id": "intro-voiceover", "media_type": "audio", "path": "", "duration": 10.0, "target_outputs": ["dev-speaker-01"], "playback_mode": "trigger", "loop": false, "volume": 0.8, "fade_in": 0.0, "fade_out": 0.2, "sync_group": "", "preloading_rules": "on_demand"}
   ],
   "operator_controls": [
     {"control_id": "start_game", "label": "Start Game", "action_type": "runtime_command", "target": "show", "confirmation_required": false, "permission_level": "operator", "runtime_effect": "start"},
+    {"control_id": "skip_puzzle", "label": "Skip Puzzle", "action_type": "logic_override", "target": "puzzle", "confirmation_required": false, "permission_level": "operator", "runtime_effect": "force_complete"},
     {"control_id": "emergency_unlock", "label": "Emergency Unlock", "action_type": "safety", "target": "doors", "confirmation_required": true, "permission_level": "lead", "runtime_effect": "unlock_all"}
   ],
-  "runtime_config": {
-    "startup_logic": "event_graph_boot",
-    "watchdog_enabled": true,
-    "watchdog_timeout_ms": 3000,
-    "heartbeat_interval_ms": 250,
-    "logging_verbosity": "info",
-    "fail_safe_behavior": "unlock_safe_devices",
-    "boot_scene": "room-lab-a",
-    "reset_behavior": "soft_reset",
-    "simulation_defaults": {"enabled": true},
-    "network_discovery": {"enabled": true, "method": "mdns"}
-  },
-  "notes": "Demo project showcasing IMMERSE Runtime pack export MVP capabilities."
+  "runtime_config": {"startup_logic": "event_graph_boot", "watchdog_enabled": true, "watchdog_timeout_ms": 3000, "heartbeat_interval_ms": 250, "logging_verbosity": "info", "fail_safe_behavior": "unlock_safe_devices", "boot_scene": "room-lab-a", "reset_behavior": "soft_reset", "simulation_defaults": {"enabled": true}, "network_discovery": {"enabled": true, "method": "mdns"}},
+  "settings": {"theme": "dark", "autosave_interval_s": 120, "default_project_path": "", "default_export_path": "", "timeline_snap_ms": 100, "default_room_scale": 0.01, "simulation_delay_ms": 50, "log_verbosity": "info", "validation_strictness": "normal", "runtime_pack_format_version": "1.0.0", "default_node_name_pattern": "node-{type}-{n}", "default_device_name_pattern": "{type}-{n}"},
+  "recent_exports": [],
+  "activity_log": ["Demo project loaded"],
+  "notes": "Comprehensive demo with two rooms and connected systems."
 }

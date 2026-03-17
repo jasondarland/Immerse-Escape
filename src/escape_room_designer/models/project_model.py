@@ -86,7 +86,9 @@ class TimelineCue:
 class EscapeProject:
     project_id: str
     name: str
-    version: str = "0.2.0"
+    description: str = ""
+    author: str = ""
+    version: str = "0.3.0"
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     startup_scene: str = "room-1"
@@ -100,33 +102,26 @@ class EscapeProject:
     states: list[dict[str, Any]] = field(default_factory=lambda: [{"key": "game_mode", "default": "idle", "persist": True}])
     timeline: list[TimelineCue] = field(default_factory=list)
     media: list[dict[str, Any]] = field(default_factory=list)
-    operator_controls: list[dict[str, Any]] = field(
-        default_factory=lambda: [
-            {"control_id": "start_game", "label": "Start Game", "action_type": "runtime_command", "target": "show", "confirmation_required": False, "permission_level": "operator", "runtime_effect": "start"},
-            {"control_id": "pause_game", "label": "Pause Game", "action_type": "runtime_command", "target": "show", "confirmation_required": False, "permission_level": "operator", "runtime_effect": "pause"},
-            {"control_id": "reset_game", "label": "Reset Game", "action_type": "runtime_command", "target": "show", "confirmation_required": True, "permission_level": "lead", "runtime_effect": "reset"},
-            {"control_id": "skip_puzzle", "label": "Skip Puzzle", "action_type": "logic_override", "target": "puzzle", "confirmation_required": False, "permission_level": "operator", "runtime_effect": "force_complete"},
-            {"control_id": "trigger_hint", "label": "Trigger Hint", "action_type": "logic_override", "target": "hint", "confirmation_required": False, "permission_level": "operator", "runtime_effect": "hint"},
-            {"control_id": "emergency_unlock", "label": "Emergency Unlock", "action_type": "safety", "target": "doors", "confirmation_required": True, "permission_level": "lead", "runtime_effect": "unlock_all"},
-            {"control_id": "trigger_finale", "label": "Trigger Finale", "action_type": "timeline_trigger", "target": "timeline/finale", "confirmation_required": False, "permission_level": "operator", "runtime_effect": "play"},
-            {"control_id": "stop_all_media", "label": "Stop All Media", "action_type": "media", "target": "all", "confirmation_required": False, "permission_level": "operator", "runtime_effect": "stop"},
-            {"control_id": "restore_defaults", "label": "Restore Defaults", "action_type": "runtime_command", "target": "system", "confirmation_required": True, "permission_level": "lead", "runtime_effect": "restore_defaults"},
-        ]
-    )
-    runtime_config: dict[str, Any] = field(
+    operator_controls: list[dict[str, Any]] = field(default_factory=list)
+    runtime_config: dict[str, Any] = field(default_factory=dict)
+    settings: dict[str, Any] = field(
         default_factory=lambda: {
-            "startup_logic": "event_graph_boot",
-            "watchdog_enabled": True,
-            "watchdog_timeout_ms": 3000,
-            "heartbeat_interval_ms": 250,
-            "logging_verbosity": "info",
-            "fail_safe_behavior": "unlock_safe_devices",
-            "boot_scene": "room-1",
-            "reset_behavior": "soft_reset",
-            "simulation_defaults": {"enabled": True},
-            "network_discovery": {"enabled": True, "method": "mdns"},
+            "theme": "dark",
+            "autosave_interval_s": 120,
+            "default_project_path": "",
+            "default_export_path": "",
+            "timeline_snap_ms": 100,
+            "default_room_scale": 0.01,
+            "simulation_delay_ms": 50,
+            "log_verbosity": "info",
+            "validation_strictness": "normal",
+            "runtime_pack_format_version": "1.0.0",
+            "default_node_name_pattern": "node-{type}-{n}",
+            "default_device_name_pattern": "{type}-{n}",
         }
     )
+    recent_exports: list[dict[str, Any]] = field(default_factory=list)
+    activity_log: list[str] = field(default_factory=list)
     notes: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -153,55 +148,15 @@ class EscapeProject:
                 )
             )
 
-        devices: list[Device] = []
-        for d in payload.get("devices", []):
-            if isinstance(d, Device):
-                devices.append(d)
-            else:
-                devices.append(
-                    Device(
-                        id=d.get("id", d.get("runtime_id", "dev-unknown")),
-                        name=d.get("name", "Device"),
-                        type=d.get("type", d.get("device_type", "button")),
-                        subtype=d.get("subtype", "generic"),
-                        room_id=d.get("room_id", "room-1"),
-                        zone_id=d.get("zone_id", d.get("zone", "default")),
-                        node_id=d.get("node_id", d.get("node_assignment", "node-gpio-1")),
-                        protocol=d.get("protocol", "gpio"),
-                        address=d.get("address", ""),
-                        capabilities=d.get("capabilities", []),
-                        default_state=d.get("default_state", "idle"),
-                        fail_state=d.get("fail_state", "safe"),
-                        tags=d.get("tags", []),
-                        notes=d.get("notes", ""),
-                        simulated_properties=d.get("simulated_properties", {}),
-                    )
-                )
-
-        timeline: list[TimelineCue] = []
-        for c in payload.get("timeline", []):
-            if isinstance(c, TimelineCue):
-                timeline.append(c)
-            else:
-                timeline.append(
-                    TimelineCue(
-                        id=c.get("id", c.get("cue_id", "cue-1")),
-                        track=c.get("track", "automation"),
-                        start_time=c.get("start_time", c.get("timecode_ms", 0)),
-                        duration=c.get("duration", 0),
-                        trigger_mode=c.get("trigger_mode", "absolute_time"),
-                        target=c.get("target", ""),
-                        action=c.get("action", "noop"),
-                        parameters=c.get("parameters", c.get("payload", {})),
-                        preconditions=c.get("preconditions", []),
-                        follow_actions=c.get("follow_actions", []),
-                    )
-                )
+        devices = [Device(**d) if not isinstance(d, Device) else d for d in payload.get("devices", [])]
+        timeline = [TimelineCue(**c) if not isinstance(c, TimelineCue) else c for c in payload.get("timeline", [])]
 
         return cls(
             project_id=payload.get("project_id", "project-001"),
             name=payload.get("name", "Untitled Project"),
-            version=payload.get("version", "0.2.0"),
+            description=payload.get("description", ""),
+            author=payload.get("author", ""),
+            version=payload.get("version", "0.3.0"),
             created_at=payload.get("created_at", datetime.utcnow().isoformat()),
             updated_at=payload.get("updated_at", datetime.utcnow().isoformat()),
             startup_scene=payload.get("startup_scene", "room-1"),
@@ -217,5 +172,8 @@ class EscapeProject:
             media=payload.get("media", []),
             operator_controls=payload.get("operator_controls", []),
             runtime_config=payload.get("runtime_config", {}),
+            settings=payload.get("settings", {}),
+            recent_exports=payload.get("recent_exports", []),
+            activity_log=payload.get("activity_log", []),
             notes=payload.get("notes", ""),
         )

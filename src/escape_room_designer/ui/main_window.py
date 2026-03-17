@@ -1,6 +1,7 @@
 """Main window composition for IMMERSE Designer – Escape Room Edition."""
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, Qt
@@ -9,7 +10,6 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QDockWidget,
     QHBoxLayout,
-    QLabel,
     QListWidget,
     QMainWindow,
     QMessageBox,
@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -25,19 +24,24 @@ from escape_room_designer.models.project_model import EscapeProject
 from escape_room_designer.services.export_service import ImmersePackExporter
 from escape_room_designer.services.project_service import ProjectService
 from escape_room_designer.services.validation_service import RuntimePackValidator
-from escape_room_designer.ui.pages.base_pages import PlaceholderPage
+from escape_room_designer.ui.pages.dashboard_page import DashboardPage
 from escape_room_designer.ui.pages.devices_page import DevicesPage
 from escape_room_designer.ui.pages.layout_page import LayoutPage
 from escape_room_designer.ui.pages.logic_page import LogicPage
+from escape_room_designer.ui.pages.operator_page import OperatorPage
+from escape_room_designer.ui.pages.projects_page import ProjectsPage
 from escape_room_designer.ui.pages.puzzle_flow_page import PuzzleFlowPage
+from escape_room_designer.ui.pages.reports_page import ReportsPage
+from escape_room_designer.ui.pages.settings_page import SettingsPage
+from escape_room_designer.ui.pages.simulator_page import SimulatorPage
+from escape_room_designer.ui.pages.timeline_page import TimelinePage
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("IMMERSE Designer – Escape Room Edition")
-        self.resize(1700, 980)
-
+        self.resize(1800, 1000)
         self.service = ProjectService()
         self.pack_exporter = ImmersePackExporter()
         self.validator = RuntimePackValidator()
@@ -45,83 +49,67 @@ class MainWindow(QMainWindow):
         self.current_project_dir: Path | None = None
         self.clipboard_payload = None
 
-        self.nav = QListWidget()
-        self.stack = QStackedWidget()
+        self.nav = QListWidget(); self.stack = QStackedWidget()
+        self.dashboard_page = DashboardPage()
+        self.projects_page = ProjectsPage(self.service.root_dir)
         self.layout_page = LayoutPage()
         self.devices_page = DevicesPage()
         self.puzzle_page = PuzzleFlowPage()
         self.logic_page = LogicPage()
+        self.timeline_page = TimelinePage()
+        self.operator_page = OperatorPage()
+        self.simulator_page = SimulatorPage()
+        self.reports_page = ReportsPage()
+        self.settings_page = SettingsPage()
 
         self.pages = {
-            "Dashboard": PlaceholderPage("Dashboard", "Production snapshot for the active IMMERSE attraction project."),
-            "Projects": self._build_projects_page(),
+            "Dashboard": self.dashboard_page,
+            "Projects": self.projects_page,
             "Layout": self.layout_page,
             "Devices": self.devices_page,
             "Puzzle Flow": self.puzzle_page,
             "Logic": self.logic_page,
-            "Timeline": PlaceholderPage("Timeline", "Timeline engine with tracks for cues and conditional playback."),
-            "Operator": PlaceholderPage("Operator", "Operator control mappings to runtime endpoints."),
-            "Simulator": PlaceholderPage("Simulator", "Virtual device/event simulator and execution trace console."),
-            "Reports": PlaceholderPage("Reports", "Generate engineering documentation and deployment sheets."),
-            "Settings": PlaceholderPage("Settings", "System defaults and runtime compatibility preferences."),
+            "Timeline": self.timeline_page,
+            "Operator": self.operator_page,
+            "Simulator": self.simulator_page,
+            "Reports": self.reports_page,
+            "Settings": self.settings_page,
         }
-
-        for name, page in self.pages.items():
-            self.nav.addItem(name)
-            self.stack.addWidget(page)
-
+        for n,p in self.pages.items(): self.nav.addItem(n); self.stack.addWidget(p)
         self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.nav.setCurrentRow(0)
 
-        root = QWidget()
-        root_layout = QHBoxLayout(root)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(self.nav, 0)
-        root_layout.addWidget(self.stack, 1)
-        self.setCentralWidget(root)
+        root = QWidget(); rl = QHBoxLayout(root); rl.setContentsMargins(0,0,0,0); rl.addWidget(self.nav,0); rl.addWidget(self.stack,1); self.setCentralWidget(root)
+        self._build_docks(); self._build_menu(); self._setup_shortcuts()
 
-        self._build_docks()
-        self._build_menu()
-        self._setup_shortcuts()
+        self.dashboard_page.on_open_page = self.open_page
+        self.dashboard_page.new_btn.clicked.connect(self.new_project)
+        self.dashboard_page.open_btn.clicked.connect(self.open_project)
+        self.projects_page.on_open_project_file = self._open_project_file
         self.devices_page.set_inspector_callback(self.update_inspector)
+
         self._load_demo_project()
+        self.autosave_timer = QTimer(self); self.autosave_timer.timeout.connect(self._autosave); self.autosave_timer.start(120000)
 
-        self.autosave_timer = QTimer(self)
-        self.autosave_timer.timeout.connect(self._autosave)
-        self.autosave_timer.start(120000)
+    def open_page(self, name: str):
+        for i in range(self.nav.count()):
+            if self.nav.item(i).text() == name:
+                self.nav.setCurrentRow(i)
+                break
 
-    def _build_projects_page(self) -> QWidget:
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        title = QLabel("<h2>IMMERSE Projects</h2>")
-        subtitle = QLabel("Author, save, simulate, and export deployable IMMERSEPACK.ZIP packages.")
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
-        layout.addStretch()
-        return page
+    def _build_docks(self):
+        d = QDockWidget("Inspector", self); self.inspector = QTableWidget(0,2); self.inspector.setHorizontalHeaderLabels(["Property","Value"]); d.setWidget(self.inspector); self.addDockWidget(Qt.RightDockWidgetArea, d)
+        d2 = QDockWidget("System Log", self); self.log_console = QPlainTextEdit(); self.log_console.setReadOnly(True); d2.setWidget(self.log_console); self.addDockWidget(Qt.BottomDockWidgetArea, d2)
 
-    def _build_docks(self) -> None:
-        inspector_dock = QDockWidget("Inspector", self)
-        self.inspector = QTableWidget(0, 2)
-        self.inspector.setHorizontalHeaderLabels(["Property", "Value"])
-        inspector_dock.setWidget(self.inspector)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, inspector_dock)
+    def _build_menu(self):
+        m = self.menuBar().addMenu("File")
+        m.addAction("New Project", self.new_project)
+        m.addAction("Open Project", self.open_project)
+        m.addAction("Save Project", self.save_project)
+        m.addAction("Save Project As", self.save_project_as)
+        m.addAction("Export IMMERSEPACK.ZIP", self.export_project)
 
-        self.log_dock = QDockWidget("System Log", self)
-        self.log_console = QPlainTextEdit()
-        self.log_console.setReadOnly(True)
-        self.log_dock.setWidget(self.log_console)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.log_dock)
-
-    def _build_menu(self) -> None:
-        file_menu = self.menuBar().addMenu("File")
-        file_menu.addAction("New Project", self.new_project)
-        file_menu.addAction("Open Project", self.open_project)
-        file_menu.addAction("Save Project", self.save_project)
-        file_menu.addAction("Save Project As", self.save_project_as)
-        file_menu.addAction("Export IMMERSEPACK.ZIP", self.export_project)
-
-    def _setup_shortcuts(self) -> None:
+    def _setup_shortcuts(self):
         QShortcut(QKeySequence.StandardKey.Copy, self, activated=self.copy_selection)
         QShortcut(QKeySequence.StandardKey.Paste, self, activated=self.paste_selection)
         QShortcut(QKeySequence.StandardKey.Delete, self, activated=self.delete_selection)
@@ -131,143 +119,113 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence.ZoomOut, self, activated=self.zoom_out)
         QShortcut(QKeySequence("Ctrl+0"), self, activated=self.zoom_reset)
 
-    def update_inspector(self, payload: dict[str, str]) -> None:
+    def update_inspector(self, payload: dict[str, str]):
         self.inspector.setRowCount(0)
-        for key, value in payload.items():
-            row = self.inspector.rowCount()
-            self.inspector.insertRow(row)
-            self.inspector.setItem(row, 0, QTableWidgetItem(key))
-            self.inspector.setItem(row, 1, QTableWidgetItem(str(value)))
+        for k,v in payload.items():
+            r=self.inspector.rowCount(); self.inspector.insertRow(r); self.inspector.setItem(r,0,QTableWidgetItem(k)); self.inspector.setItem(r,1,QTableWidgetItem(str(v)))
 
     def _editable_page(self):
-        page = self.stack.currentWidget()
-        return page if hasattr(page, "copy_selection") else None
+        p=self.stack.currentWidget(); return p if hasattr(p,'copy_selection') else None
+    def copy_selection(self):
+        p=self._editable_page();
+        if p: self.clipboard_payload=p.copy_selection(); self.log("Copied selection.")
+    def paste_selection(self):
+        p=self._editable_page();
+        if p and self.clipboard_payload: p.paste_selection(self.clipboard_payload); self.log("Pasted selection.")
+    def delete_selection(self):
+        p=self._editable_page();
+        if p: p.delete_selection(); self.log("Deleted selection.")
+    def cut_selection(self): self.copy_selection(); self.delete_selection()
+    def duplicate_selection(self): self.copy_selection(); self.paste_selection()
+    def zoom_in(self):
+        p=self.stack.currentWidget();
+        if hasattr(p,'zoom_in'): p.zoom_in()
+    def zoom_out(self):
+        p=self.stack.currentWidget();
+        if hasattr(p,'zoom_out'): p.zoom_out()
+    def zoom_reset(self):
+        p=self.stack.currentWidget();
+        if hasattr(p,'zoom_reset'): p.zoom_reset()
 
-    def copy_selection(self) -> None:
-        page = self._editable_page()
-        if not page:
-            return
-        self.clipboard_payload = page.copy_selection()
-        self.log("Copied selection.")
-
-    def paste_selection(self) -> None:
-        page = self._editable_page()
-        if not page or not self.clipboard_payload:
-            return
-        page.paste_selection(self.clipboard_payload)
-        self.log("Pasted selection.")
-
-    def delete_selection(self) -> None:
-        page = self._editable_page()
-        if not page:
-            return
-        page.delete_selection()
-        self.log("Deleted selection.")
-
-    def cut_selection(self) -> None:
-        self.copy_selection()
-        self.delete_selection()
-
-    def duplicate_selection(self) -> None:
-        self.copy_selection()
-        self.paste_selection()
-
-    def zoom_in(self) -> None:
-        page = self.stack.currentWidget()
-        if hasattr(page, "zoom_in"):
-            page.zoom_in()
-
-    def zoom_out(self) -> None:
-        page = self.stack.currentWidget()
-        if hasattr(page, "zoom_out"):
-            page.zoom_out()
-
-    def zoom_reset(self) -> None:
-        page = self.stack.currentWidget()
-        if hasattr(page, "zoom_reset"):
-            page.zoom_reset()
-
-    def _load_demo_project(self) -> None:
-        demo_file = Path(__file__).resolve().parents[1] / "demo_data" / "demo_project.json"
-        if demo_file.exists():
-            self.current_project = self.service.load_project(demo_file)
+    def _load_demo_project(self):
+        demo = Path(__file__).resolve().parents[1] / "demo_data" / "demo_project.json"
+        if demo.exists():
+            self.current_project = self.service.load_project(demo)
             self._apply_project_to_ui()
             self.log("Loaded bundled demo project.")
 
-    def _apply_project_to_ui(self) -> None:
-        self.layout_page.import_rooms(self.current_project.layouts)
-        self.devices_page.import_devices(self.current_project.devices)
-        self.puzzle_page.scene.import_graph(self.current_project.puzzle_nodes, self.current_project.puzzle_edges)
-        self.logic_page.scene.import_graph(self.current_project.logic_nodes, self.current_project.logic_edges)
+    def _apply_project_to_ui(self):
+        p=self.current_project
+        self.layout_page.import_rooms(p.layouts)
+        self.devices_page.import_devices(p.devices)
+        self.puzzle_page.scene.import_graph(p.puzzle_nodes, p.puzzle_edges)
+        self.logic_page.scene.import_graph(p.logic_nodes, p.logic_edges)
+        self.timeline_page.import_timeline(p.timeline)
+        self.operator_page.bind_project(p)
+        self.simulator_page.bind_project(p)
+        self.reports_page.bind_project(p)
+        self.settings_page.bind_project(p)
+        validation = self.validator.validate(p)
+        self.dashboard_page.bind_project(p, [f"{i.level}: {i.message}" for i in validation.issues])
 
-    def _pull_ui_to_project(self) -> None:
-        self.current_project.layouts = self.layout_page.export_rooms()
-        self.current_project.devices = self.devices_page.export_devices()
-        p_nodes, p_edges = self.puzzle_page.scene.export_graph()
-        l_nodes, l_edges = self.logic_page.scene.export_graph()
-        self.current_project.puzzle_nodes = p_nodes
-        self.current_project.puzzle_edges = p_edges
-        self.current_project.logic_nodes = l_nodes
-        self.current_project.logic_edges = l_edges
+    def _pull_ui_to_project(self):
+        p=self.current_project
+        p.layouts=self.layout_page.export_rooms()
+        p.devices=self.devices_page.export_devices()
+        p.puzzle_nodes,p.puzzle_edges=self.puzzle_page.scene.export_graph()
+        p.logic_nodes,p.logic_edges=self.logic_page.scene.export_graph()
+        p.timeline=self.timeline_page.export_timeline()
+        p.updated_at = datetime.utcnow().isoformat()
 
-    def log(self, message: str) -> None:
-        self.log_console.appendPlainText(message)
+    def log(self,msg:str):
+        self.current_project.activity_log.append(msg)
+        self.log_console.appendPlainText(msg)
 
-    def new_project(self) -> None:
+    def new_project(self):
         self.current_project = EscapeProject(project_id="project-new", name="New IMMERSE Attraction")
-        self.current_project_dir = None
-        self._apply_project_to_ui()
-        self.log("Created new project.")
+        self.current_project_dir=None
+        self._apply_project_to_ui(); self.log("Created new project.")
 
-    def open_project(self) -> None:
-        filename, _ = QFileDialog.getOpenFileName(self, "Open Project", "", "Project JSON (*.json)")
-        if not filename:
-            return
-        self.current_project = self.service.load_project(Path(filename))
-        self.current_project_dir = Path(filename).parent
-        self._apply_project_to_ui()
-        self.log(f"Opened project: {filename}")
+    def _open_project_file(self, project_file: Path):
+        self.current_project = self.service.load_project(project_file)
+        self.current_project_dir = project_file.parent
+        self._apply_project_to_ui(); self.log(f"Opened project: {project_file}")
 
-    def save_project(self) -> None:
+    def open_project(self):
+        fn,_=QFileDialog.getOpenFileName(self,"Open Project","","Project JSON (*.json)")
+        if fn: self._open_project_file(Path(fn))
+
+    def save_project(self):
         self._pull_ui_to_project()
         if not self.current_project_dir:
-            self.save_project_as()
-            return
-        project_file = self.service.save_project(self.current_project, self.current_project_dir)
-        self.log(f"Saved project to {project_file}")
+            self.save_project_as(); return
+        pf=self.service.save_project(self.current_project,self.current_project_dir); self.log(f"Saved project to {pf}"); self.projects_page.refresh(); self._apply_project_to_ui()
 
-    def save_project_as(self) -> None:
-        folder = QFileDialog.getExistingDirectory(self, "Save Project As")
-        if not folder:
-            return
-        self.current_project_dir = Path(folder)
-        self.save_project()
+    def save_project_as(self):
+        folder=QFileDialog.getExistingDirectory(self,"Save Project As")
+        if folder:
+            self.current_project_dir=Path(folder)
+            self.save_project()
 
-    def export_project(self) -> None:
+    def export_project(self):
         self._pull_ui_to_project()
-        validation = self.validator.validate(self.current_project)
-        for issue in validation.issues:
-            self.log(f"[{issue.level.upper()}] {issue.code}: {issue.message}")
+        validation=self.validator.validate(self.current_project)
+        for i in validation.issues: self.log(f"[{i.level.upper()}] {i.code}: {i.message}")
         if not validation.passed:
-            QMessageBox.warning(self, "Validation Failed", "Cannot export: fix validation errors shown in log.")
+            QMessageBox.warning(self,"Validation Failed","Cannot export: fix validation errors in log.")
             return
-
-        default = str((self.current_project_dir or Path.cwd()) / "IMMERSEPACK.ZIP")
-        filename, _ = QFileDialog.getSaveFileName(self, "Export IMMERSEPACK", default, "ZIP Files (*.zip)")
-        if not filename:
-            return
-        output = Path(filename)
-        if output.suffix.lower() != ".zip":
-            output = output.with_suffix(".zip")
-        if output.name.upper() != "IMMERSEPACK.ZIP":
-            output = output.with_name("IMMERSEPACK.ZIP")
-        created = self.pack_exporter.export(self.current_project, output, validation)
+        default=str((self.current_project_dir or Path.cwd())/"IMMERSEPACK.ZIP")
+        fn,_=QFileDialog.getSaveFileName(self,"Export IMMERSEPACK",default,"ZIP Files (*.zip)")
+        if not fn: return
+        out=Path(fn)
+        if out.suffix.lower() != '.zip': out=out.with_suffix('.zip')
+        if out.name.upper() != 'IMMERSEPACK.ZIP': out=out.with_name('IMMERSEPACK.ZIP')
+        created=self.pack_exporter.export(self.current_project,out,validation)
+        self.current_project.recent_exports.append({"file": str(created), "time": datetime.utcnow().isoformat(), "status": "success"})
         self.log(f"Exported IMMERSEPACK: {created}")
-        QMessageBox.information(self, "Export Complete", f"Created {created}")
+        self._apply_project_to_ui()
+        QMessageBox.information(self,"Export Complete",f"Created {created}")
 
-    def _autosave(self) -> None:
-        if not self.current_project_dir:
-            return
-        self._pull_ui_to_project()
-        autosave_file = self.service.autosave(self.current_project, self.current_project_dir)
-        self.log(f"Autosaved snapshot: {autosave_file.name}")
+    def _autosave(self):
+        if not self.current_project_dir: return
+        self._pull_ui_to_project(); f=self.service.autosave(self.current_project,self.current_project_dir); self.log(f"Autosaved snapshot: {f.name}")
