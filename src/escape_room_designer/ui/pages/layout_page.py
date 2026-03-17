@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QGraphicsView, QHBoxLayout, QToolBar, QWidget
 
 from escape_room_designer.ui.widgets.layout_scene import LayoutScene
@@ -24,7 +25,7 @@ class LayoutPage(QWidget):
         self.toolbar.addAction("Add Light", lambda: self.scene.add_layout_object("light", 120, 120))
 
         self.view = QGraphicsView(self.scene)
-        self.view.setRenderHints(self.view.renderHints() | self.view.RenderHint.Antialiasing)
+        self.view.setRenderHints(self.view.renderHints() | QPainter.RenderHint.Antialiasing)
         self.view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
 
         layout.addWidget(self.toolbar)
