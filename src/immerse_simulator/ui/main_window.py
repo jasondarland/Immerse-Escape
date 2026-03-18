@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtWidgets import QListWidget, QMainWindow, QSplitter, QStackedWidget, QWidget, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel, QListWidget, QMainWindow, QSplitter, QStackedWidget, QVBoxLayout, QWidget, QHBoxLayout
 
 from immerse_simulator.engine.runtime_engine import RuntimeEngine
 from immerse_simulator.models.events import Event
@@ -45,8 +46,34 @@ class MainWindow(QMainWindow):
         self.engine.nodes_changed.connect(self.refresh_all)
         self.engine.timeline_changed.connect(self.refresh_all)
 
+        root = QWidget()
+        root.setObjectName("simulatorRoot")
+        root_layout = QVBoxLayout(root)
+        root_layout.setContentsMargins(16, 16, 16, 16)
+        root_layout.setSpacing(12)
+
+        top_bar = QWidget()
+        top_bar.setObjectName("topBar")
+        top_layout = QHBoxLayout(top_bar)
+        top_layout.setContentsMargins(16, 12, 16, 12)
+        title_stack = QVBoxLayout()
+        self.title_label = QLabel("IMMERSE Escape Simulator")
+        self.title_label.setObjectName("appTitle")
+        self.subtitle_label = QLabel("Local digital twin for runtime, OCC, node, device, and puzzle simulation")
+        self.subtitle_label.setObjectName("appSubtitle")
+        title_stack.addWidget(self.title_label)
+        title_stack.addWidget(self.subtitle_label)
+        self.session_badge = QLabel("Session: Stopped")
+        self.session_badge.setObjectName("sessionBadge")
+        self.session_badge.setAlignment(Qt.AlignCenter)
+        top_layout.addLayout(title_stack, 1)
+        top_layout.addWidget(self.session_badge)
+        root_layout.addWidget(top_bar)
+
         splitter = QSplitter()
+        splitter.setChildrenCollapsible(False)
         nav = QListWidget()
+        nav.setObjectName("navList")
         nav.addItems(self.PAGE_ORDER)
         nav.currentRowChanged.connect(self._set_page_index)
         self.stack = QStackedWidget()
@@ -64,13 +91,17 @@ class MainWindow(QMainWindow):
         }
         for name in self.PAGE_ORDER:
             container = QWidget()
+            container.setObjectName("pageContainer")
             layout = QVBoxLayout(container)
+            layout.setContentsMargins(14, 14, 14, 14)
             layout.addWidget(self.pages[name])
             self.stack.addWidget(container)
         splitter.addWidget(nav)
         splitter.addWidget(self.stack)
         splitter.setStretchFactor(1, 1)
-        self.setCentralWidget(splitter)
+        splitter.setSizes([260, 1280])
+        root_layout.addWidget(splitter, 1)
+        self.setCentralWidget(root)
         nav.setCurrentRow(0)
         self.load_package(str(self.demo_package_path))
 
@@ -88,5 +119,11 @@ class MainWindow(QMainWindow):
         self.refresh_all()
 
     def refresh_all(self) -> None:
+        status = self.engine.session.status.title()
+        package_name = self.engine.package.name if self.engine.package else "No Package"
+        self.session_badge.setText(f"Session: {status}")
+        self.subtitle_label.setText(
+            f"{package_name} • Room: {self.engine.active_room} • Speed: {self.engine.session.speed:.1f}x"
+        )
         for page in self.pages.values():
             page.refresh()

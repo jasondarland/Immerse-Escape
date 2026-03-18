@@ -6,7 +6,10 @@ from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QVBoxLayout
 class Card(QFrame):
     def __init__(self, title: str, value: str = "") -> None:
         super().__init__()
+        self.setObjectName("metricCard")
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 14, 14, 14)
+        layout.setSpacing(8)
         self.title_label = QLabel(title)
         self.title_label.setProperty("role", "secondary")
         self.value_label = QLabel(value)
@@ -21,7 +24,11 @@ class Card(QFrame):
 class MetricsGrid(QFrame):
     def __init__(self, metrics: list[str]) -> None:
         super().__init__()
+        self.setObjectName("pageFrame")
         self.layout = QGridLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setHorizontalSpacing(12)
+        self.layout.setVerticalSpacing(12)
         self.cards = {}
         for index, name in enumerate(metrics):
             card = Card(name)
