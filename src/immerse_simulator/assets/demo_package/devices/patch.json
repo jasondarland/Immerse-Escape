@@ -1,0 +1,1 @@
+{"patch": [{"device_id": "lab_a_speaker", "target": "zone_a"}, {"device_id": "lab_b_screen", "target": "screen_b"}]}
