@@ -17,11 +17,19 @@ CRASH_FILE_NAME = "immerse_runtime_crash.log"
 
 
 def _app_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parents[3]
 
 
+def app_data_dir() -> Path:
+    path = _app_root()
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def log_dir() -> Path:
-    path = _app_root() / LOG_DIR_NAME
+    path = app_data_dir() / LOG_DIR_NAME
     path.mkdir(parents=True, exist_ok=True)
     return path
 

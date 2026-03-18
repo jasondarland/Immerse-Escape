@@ -1,0 +1,12 @@
+{
+  "devices": [
+    {"id": "atrium_keypad", "name": "Atrium Keypad", "type": "keypad", "room": "Atrium", "node": "node_gpio_1"},
+    {"id": "atrium_lock", "name": "Atrium Vault Lock", "type": "mag_lock", "room": "Atrium", "node": "node_gpio_1"},
+    {"id": "atrium_relay", "name": "Atrium Relay Pack", "type": "relay", "room": "Atrium", "node": "node_gpio_1"},
+    {"id": "lab_rfid", "name": "Lab RFID Reader", "type": "rfid", "room": "Laboratory", "node": "node_gpio_1"},
+    {"id": "lab_audio", "name": "Lab Speaker Zone", "type": "audio_cue", "room": "Laboratory", "node": "node_audio_1"},
+    {"id": "lab_video", "name": "Lab Projection Surface", "type": "video_cue", "room": "Laboratory", "node": "node_video_1"},
+    {"id": "master_lighting", "name": "Master Show Lighting", "type": "light_cue", "room": "Atrium", "node": "node_lighting_1"},
+    {"id": "fx_fogger", "name": "Finale Fogger", "type": "generic_output", "room": "Laboratory", "node": "node_fx_1"}
+  ]
+}

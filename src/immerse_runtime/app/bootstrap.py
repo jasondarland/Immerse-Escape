@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
+from immerse_runtime.utils.demo_package_utils import demo_package_search_summary, resolve_demo_package_path
 from immerse_runtime.utils.logging_utils import configure_logging, runtime_environment_summary
 
 
@@ -21,7 +21,8 @@ def main() -> int:
     app.setStyleSheet(DARK_THEME)
 
     runtime = RuntimeService()
-    demo_path = Path(__file__).resolve().parents[3] / "demo_package"
+    logger.info("Demo package search summary: %s", demo_package_search_summary())
+    demo_path = resolve_demo_package_path()
     logger.info("Resolved demo package path: %s", demo_path)
 
     try:

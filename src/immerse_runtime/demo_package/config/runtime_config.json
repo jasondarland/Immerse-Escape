@@ -1,0 +1,8 @@
+{
+  "auto_load_last_package": true,
+  "device_poll_interval_ms": 1000,
+  "watchdog_enabled": true,
+  "reset_behavior": "safe",
+  "logging_level": "info",
+  "mock_mode": true
+}
