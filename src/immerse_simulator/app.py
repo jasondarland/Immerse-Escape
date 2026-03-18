@@ -1,16 +1,25 @@
 from __future__ import annotations
 
+import importlib.util
 import sys
 import traceback
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication, QMessageBox
-
-from immerse_simulator.ui.main_window import MainWindow
-from immerse_simulator.ui.theme import DARK_THEME
-
 
 def main() -> int:
+    if importlib.util.find_spec("PySide6") is None:
+        print(
+            "IMMERSE Escape Simulator requires PySide6. "
+            "Install it first, then run this app again.",
+            file=sys.stderr,
+        )
+        return 1
+
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    from immerse_simulator.ui.main_window import MainWindow
+    from immerse_simulator.ui.theme import DARK_THEME
+
     app = QApplication(sys.argv)
     app.setStyleSheet(DARK_THEME)
     demo_path = Path(__file__).resolve().parent / "assets" / "demo_package"

@@ -2,11 +2,18 @@
 
 A Windows-first PySide6 desktop MVP that simulates the IMMERSE Escape stack locally on one machine.
 
-## Run
+## Quick run from source
+
+```bash
+pip install PySide6
+python run_simulator.py
+```
+
+## Editable install
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e .
 immerse-escape-simulator
 ```
