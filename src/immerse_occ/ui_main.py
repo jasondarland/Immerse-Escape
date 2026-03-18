@@ -63,6 +63,7 @@ class MainWindow(QMainWindow):
 
         self.timer_label = QLabel("00:00")
         self.global_status_label = QLabel("READY")
+        self.package_info_label = QLabel("Package: Demo | Version: sample | Rooms: 2 | Devices: 8")
         top_bar.addWidget(QLabel("Room:"))
         top_bar.addWidget(self.room_selector)
         top_bar.addWidget(QLabel("Game Timer:"))
@@ -70,9 +71,13 @@ class MainWindow(QMainWindow):
         top_bar.addStretch()
         top_bar.addWidget(QLabel("Room Status:"))
         top_bar.addWidget(self.global_status_label)
-        self.load_pack_button = QPushButton("Load ImmersePack ZIP")
-        self.load_pack_button.clicked.connect(self._load_pack_zip)
+        self.load_pack_button = QPushButton("Load Package (.immersepack/.zip)")
+        self.load_pack_button.clicked.connect(self._load_pack_file)
         top_bar.addWidget(self.load_pack_button)
+        self.load_pack_folder_button = QPushButton("Load Package Folder")
+        self.load_pack_folder_button.clicked.connect(self._load_pack_folder)
+        top_bar.addWidget(self.load_pack_folder_button)
+        top_bar.addWidget(self.package_info_label)
         root.addLayout(top_bar)
 
         splitter = QSplitter(Qt.Horizontal)
@@ -256,18 +261,28 @@ class MainWindow(QMainWindow):
         self.notes_edit.setPlainText(room.notes)
         self.refresh()
 
-    def _load_pack_zip(self) -> None:
+    def _load_pack_file(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Immerse Pack ZIP",
+            "Select IMMERSE package",
             "",
-            "ZIP files (*.zip)",
+            "IMMERSE package (*.immersepack *.zip)",
         )
         if not file_path:
             return
+        self._load_package_path(file_path)
+
+    def _load_pack_folder(self) -> None:
+        folder = QFileDialog.getExistingDirectory(self, "Select Package Folder")
+        if not folder:
+            return
+        self._load_package_path(folder)
+
+    def _load_package_path(self, package_path: str) -> None:
+        self.event_log.clear()
 
         try:
-            self.service.load_pack(file_path)
+            self.service.load_pack(package_path)
             self._rebuild_room_controls()
             self.refresh()
         except Exception as exc:
@@ -378,7 +393,20 @@ class MainWindow(QMainWindow):
         self._refresh_alerts()
         self._refresh_devices()
         self._refresh_checklist(room)
+        self._refresh_package_info()
         self.refresh_elements()
+
+    def _refresh_package_info(self) -> None:
+        loaded = self.service.state.loaded_package
+        if loaded is None:
+            self.package_info_label.setText(
+                f"Package: Demo | Version: sample | Rooms: {len(self.service.state.rooms)} | Devices: {len(self.service.state.devices)}"
+            )
+            return
+        self.package_info_label.setText(
+            f"Package: {loaded.project_name} | Version: {loaded.version} | "
+            f"Rooms: {len(self.service.state.rooms)} | Devices: {len(self.service.state.devices)}"
+        )
 
     def _refresh_puzzles(self, room) -> None:
         self.puzzle_table.setRowCount(len(room.puzzles))

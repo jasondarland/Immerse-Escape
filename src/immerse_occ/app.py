@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -23,6 +24,12 @@ def _write_startup_log(message: str) -> None:
 
 def run() -> int:
     """Start OCC UI with early-failure logging and safe exception handling."""
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
 
     try:
         from PySide6.QtWidgets import QApplication, QMessageBox

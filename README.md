@@ -57,11 +57,20 @@ src/immerse_occ/
   __init__.py
   __main__.py
   app.py
+  package_loader.py
+  pack_builder.py
+  validation.py
   models.py
   sample_data.py
   styles.py
   services.py
   ui_main.py
+
+tools/
+  build_immersepack.py
+
+examples/
+  manifest.json
 ```
 
 ## Notes
@@ -76,33 +85,84 @@ On Windows, this resolves to:
 
 `C:\Users\<your-user>\.immerse_occ_startup.log`
 
-## Importing `immersepack.zip`
-Use the **Load ImmersePack ZIP** button in the top bar of the Operator Controls page.
+## Official Package Format: `.immersepack`
 
-Supported pack layouts:
+`*.immersepack` is now the primary package format (ZIP container).
 
-1. `immersepack.json` (or `manifest.json` / `pack.json`) at any path in the zip:
+Accepted package sources in OCC:
+- `.immersepack` (primary)
+- `.zip` (legacy/backward compatible)
+- folder path (dev mode)
 
-```json
-{
-  "rooms": [
-    {
-      "id": "lab_a",
-      "name": "Lab A",
-      "puzzles": [{"id": "a1", "name": "Calibrate Reactor"}],
-      "reset_checklist": ["Re-lock main door"]
-    }
-  ],
-  "devices": [
-    {"id": "door_a", "name": "Lab A Main Door", "room_id": "lab_a", "kind": "door", "status": "locked"}
-  ],
-  "show_elements": [
-    {"id": "cue_alarm", "name": "Alarm", "room_id": "lab_a", "category": "Audio", "status": "ready"}
-  ]
-}
+Use:
+- **Load Package (.immersepack/.zip)** for file packages
+- **Load Package Folder** for unpacked dev packages
+
+The OCC validates package structure before loading and displays:
+- project name
+- version
+- room count
+- device count
+
+### Required official structure
+```
+manifest.json
+payload/
+  immersepack.json
+  project/project.json
+  devices/devices.json
+  devices/patch.json
+  logic/logic_graph.json
+  logic/states.json
+  timeline/timeline.json
+  media/media_index.json
+  operator/operator_controls.json
+  config/runtime_config.json
 ```
 
-2. Separate files: `rooms.json` (required), plus optional `devices.json`, `show_elements.json`.
-3. Fallback folder scan: `/rooms/<room-name>/...` (creates room list even if no device/cue JSON exists).
+Optional directories:
+- `checksums/`
+- `assets/`
 
-When loaded, the app automatically rebuilds room selectors and filters so room count and content come from your pack.
+### Loader behavior
+1. If `manifest.json` exists, use `manifest["payload_root"]` or default `payload`.
+2. Else if `payload/` exists, use `payload/`.
+3. Else, treat package root as payload.
+
+### Security and validation
+- Safe extraction blocks path traversal (`../`) entries.
+- Archives extract to temporary folder:
+  - `%TEMP%/immerse_runtime/<uuid>/` on Windows
+  - equivalent temp directory on macOS/Linux
+- Required files are validated for official `.immersepack` packages.
+
+Errors:
+- `PackageValidationError("Invalid IMMERSEPACK: missing required files ...")`
+- `PackageValidationError("Invalid manifest: ...")`
+
+### Logging
+Package loader logs include:
+- `INFO Loading IMMERSEPACK`
+- `INFO Detected payload root`
+- `INFO Validation passed`
+- `ERROR Missing required files`
+- `ERROR Invalid manifest`
+
+## Legacy compatibility
+- `.zip` without `manifest.json` remains supported.
+- Unpacked folder packages remain supported.
+- Legacy room/device/show element JSON layouts remain supported as fallback.
+
+## Designer Export / Builder Utility
+
+Example manifest is included at:
+- `examples/manifest.json`
+
+Build an official `.immersepack` from a prepared payload source folder:
+
+```bash
+PYTHONPATH=src python tools/build_immersepack.py /path/to/payload_source ./MyShow_v1.immersepack --version 1.0.0
+```
+
+Programmatic export helper:
+- `src/immerse_occ/pack_builder.py::export_immersepack(...)`

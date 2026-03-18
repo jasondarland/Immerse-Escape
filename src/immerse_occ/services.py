@@ -3,12 +3,15 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from datetime import datetime
+import logging
 
 from PySide6.QtCore import QObject, QTimer, Signal
 
 from .models import DeviceState, Event, Room, RoomHealth, Severity, ShowElement
-from .pack_loader import load_immersepack_zip
+from .package_loader import LoadedPackage, load_package
 from .sample_data import build_devices, build_rooms, build_show_elements
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -17,6 +20,7 @@ class AppState:
     devices: dict[str, DeviceState]
     show_elements: dict[str, ShowElement]
     events: list[Event]
+    loaded_package: LoadedPackage | None = None
 
 
 class MockCommandService(QObject):
@@ -35,14 +39,18 @@ class MockCommandService(QObject):
         self._timer.start(1000)
 
     def load_pack(self, pack_path: str) -> None:
-        pack = load_immersepack_zip(pack_path)
-        self.state.rooms = {room.id: room for room in pack.rooms}
-        self.state.devices = {device.id: device for device in pack.devices}
-        self.state.show_elements = {element.id: element for element in pack.show_elements}
+        loaded = load_package(pack_path)
+        self.state.rooms = {room.id: room for room in loaded.data.rooms}
+        self.state.devices = {device.id: device for device in loaded.data.devices}
+        self.state.show_elements = {element.id: element for element in loaded.data.show_elements}
+        self.state.loaded_package = loaded
         self.state.events.clear()
 
         default_room = next(iter(self.state.rooms), "")
-        self._log(default_room, f"Loaded immerse pack: {pack_path}")
+        logger.info("Loading IMMERSEPACK")
+        logger.info("Detected payload root: %s", loaded.payload_root)
+        logger.info("Validation passed")
+        self._log(default_room, f"Loaded package: {pack_path}")
         self.state_changed.emit()
 
     def _log(self, room_id: str, message: str, severity: Severity = Severity.INFO) -> None:
