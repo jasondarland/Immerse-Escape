@@ -20,18 +20,19 @@ from immerse_simulator.ui.pages.timeline_monitor import TimelineMonitorPage
 
 
 class MainWindow(QMainWindow):
-    PAGE_ORDER = [
-        "Dashboard",
-        "Room View",
-        "Player Inputs",
-        "Runtime State",
-        "Node Simulator",
-        "Operator Controls",
-        "Event Log",
-        "Timeline / Cue Monitor",
-        "Package Loader",
-        "Settings",
+    NAV_ITEMS = [
+        ("Dashboard", "Dashboard"),
+        ("Room View", "Room View"),
+        ("Player Inputs", "Player Inputs"),
+        ("Runtime State", "Runtime State"),
+        ("Node Simulator", "Node Simulator"),
+        ("Operator Controls", "Operator Controls"),
+        ("Event Log", "Event Log"),
+        ("Timeline", "Timeline / Cue Monitor"),
+        ("Package Loader", "Package Loader"),
+        ("Settings", "Settings"),
     ]
+    PAGE_ORDER = [page_name for _, page_name in NAV_ITEMS]
 
     def __init__(self, demo_package_path: Path) -> None:
         super().__init__()
@@ -75,7 +76,12 @@ class MainWindow(QMainWindow):
         splitter.setChildrenCollapsible(False)
         self.nav = QListWidget()
         self.nav.setObjectName("navList")
-        self.nav.addItems(self.PAGE_ORDER)
+        self.nav.setMinimumWidth(250)
+        self.nav.setMaximumWidth(280)
+        self.nav.setWordWrap(True)
+        self.nav.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.nav.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.nav.addItems([label for label, _ in self.NAV_ITEMS])
         self.nav.currentRowChanged.connect(self._set_page_index)
         self.stack = QStackedWidget()
         self.pages = {
@@ -99,8 +105,9 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(container)
         splitter.addWidget(self.nav)
         splitter.addWidget(self.stack)
+        splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([260, 1280])
+        splitter.setSizes([270, 1270])
         root_layout.addWidget(splitter, 1)
         self.setCentralWidget(root)
         self.nav.setCurrentRow(0)

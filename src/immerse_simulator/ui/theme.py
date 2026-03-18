@@ -33,9 +33,11 @@ QGroupBox::title {
     color: #AFC2D9;
 }
 QListWidget#navList {
-    padding: 8px;
+    padding: 10px;
+    font-size: 15px;
 }
 QListWidget#navList::item {
+    min-height: 28px;
     padding: 10px 12px;
     margin: 4px 0;
     border-radius: 8px;
