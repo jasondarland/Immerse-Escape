@@ -252,9 +252,16 @@ class MainWindow(QMainWindow):
 
     def load_package(self):
         default_path = str((Path(__file__).resolve().parents[3] / "demo_package"))
-        path = QFileDialog.getExistingDirectory(self, "Select Runtime Package", default_path)
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open IMMERSE Package",
+            default_path,
+            "IMMERSE Packages (*.immersepack *.zip);;All Files (*)",
+        )
         if not path:
-            path = default_path
+            path = QFileDialog.getExistingDirectory(self, "Select Runtime Package Folder", default_path)
+        if not path:
+            return
         try:
             self.runtime.load_package(path)
         except Exception as exc:

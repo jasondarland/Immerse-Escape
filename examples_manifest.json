@@ -1,0 +1,6 @@
+{
+  "format": "IMMERSEPACK",
+  "version": "1.0.0",
+  "payload_root": "payload",
+  "entry": "payload/immersepack.json"
+}
