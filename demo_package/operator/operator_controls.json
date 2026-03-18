@@ -1,0 +1,6 @@
+{
+  "controls": [
+    "Start Session", "Pause Session", "Resume Session", "Stop Session", "Reset Room", "Full Reset",
+    "Emergency Unlock", "Stop All Outputs", "Acknowledge Alert", "Skip Puzzle", "Trigger Hint", "Trigger Finale"
+  ]
+}
