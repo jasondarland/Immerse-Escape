@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QListWidget, QMainWindow, QSplitter, QStackedWidget, QVBoxLayout, QWidget, QHBoxLayout
+from PySide6.QtWidgets import QLabel, QListWidget, QMainWindow, QMessageBox, QSplitter, QStackedWidget, QVBoxLayout, QWidget, QHBoxLayout
 
 from immerse_simulator.engine.runtime_engine import RuntimeEngine
 from immerse_simulator.models.events import Event
@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
         self.demo_package_path = demo_package_path
         self.engine = RuntimeEngine()
         self.event_log: list[Event] = []
+        self._refresh_in_progress = False
         self.engine.event_bus.event_emitted.connect(self._on_event)
         self.engine.package_loaded.connect(self.refresh_all)
         self.engine.state_changed.connect(self.refresh_all)
@@ -72,10 +73,10 @@ class MainWindow(QMainWindow):
 
         splitter = QSplitter()
         splitter.setChildrenCollapsible(False)
-        nav = QListWidget()
-        nav.setObjectName("navList")
-        nav.addItems(self.PAGE_ORDER)
-        nav.currentRowChanged.connect(self._set_page_index)
+        self.nav = QListWidget()
+        self.nav.setObjectName("navList")
+        self.nav.addItems(self.PAGE_ORDER)
+        self.nav.currentRowChanged.connect(self._set_page_index)
         self.stack = QStackedWidget()
         self.pages = {
             "Dashboard": DashboardPage(self),
@@ -96,34 +97,50 @@ class MainWindow(QMainWindow):
             layout.setContentsMargins(14, 14, 14, 14)
             layout.addWidget(self.pages[name])
             self.stack.addWidget(container)
-        splitter.addWidget(nav)
+        splitter.addWidget(self.nav)
         splitter.addWidget(self.stack)
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([260, 1280])
         root_layout.addWidget(splitter, 1)
         self.setCentralWidget(root)
-        nav.setCurrentRow(0)
+        self.nav.setCurrentRow(0)
         self.load_package(str(self.demo_package_path))
 
     def load_package(self, path: str) -> None:
-        self.engine.load_package(path)
+        try:
+            self.engine.load_package(path)
+        except Exception as exc:
+            QMessageBox.critical(self, "Package Load Failed", f"Could not load package:\n{path}\n\n{exc}")
 
     def show_page(self, name: str) -> None:
-        self.stack.setCurrentIndex(self.PAGE_ORDER.index(name))
+        if name in self.PAGE_ORDER:
+            index = self.PAGE_ORDER.index(name)
+            self.stack.setCurrentIndex(index)
+            self.nav.setCurrentRow(index)
 
     def _set_page_index(self, index: int) -> None:
-        self.stack.setCurrentIndex(index)
+        if 0 <= index < self.stack.count():
+            self.stack.setCurrentIndex(index)
 
     def _on_event(self, event: Event) -> None:
         self.event_log.append(event)
         self.refresh_all()
 
     def refresh_all(self) -> None:
-        status = self.engine.session.status.title()
-        package_name = self.engine.package.name if self.engine.package else "No Package"
-        self.session_badge.setText(f"Session: {status}")
-        self.subtitle_label.setText(
-            f"{package_name} • Room: {self.engine.active_room} • Speed: {self.engine.session.speed:.1f}x"
-        )
-        for page in self.pages.values():
-            page.refresh()
+        if self._refresh_in_progress:
+            return
+        self._refresh_in_progress = True
+        try:
+            status = self.engine.session.status.title()
+            package_name = self.engine.package.name if self.engine.package else "No Package"
+            self.session_badge.setText(f"Session: {status}")
+            self.subtitle_label.setText(
+                f"{package_name} • Room: {self.engine.active_room} • Speed: {self.engine.session.speed:.1f}x"
+            )
+            for name, page in self.pages.items():
+                try:
+                    page.refresh()
+                except Exception as exc:
+                    self.event_log.append(Event(source="UI", event_type="error", severity="error", message=f"Refresh failed for {name}: {exc}"))
+        finally:
+            self._refresh_in_progress = False

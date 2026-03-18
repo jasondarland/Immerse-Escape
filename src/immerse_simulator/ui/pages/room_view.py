@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF
 from PySide6.QtGui import QColor, QBrush, QPen
 from PySide6.QtWidgets import QComboBox, QGraphicsScene, QGraphicsView, QLabel, QVBoxLayout, QWidget
 
@@ -11,6 +11,8 @@ STATE_COLORS = {
     "idle": "#AFC2D9",
     "armed": "#1E90FF",
     "active": "#F59E0B",
+    "waiting": "#64748B",
+    "inactive": "#24324A",
 }
 
 
@@ -29,31 +31,35 @@ class RoomViewPage(QWidget):
         layout.addWidget(self.view)
 
     def _room_changed(self, room: str) -> None:
-        if room:
+        if room and room != self.window.engine.active_room:
             self.window.engine.active_room = room
-            self.refresh()
+            self.window.refresh_all()
 
     def refresh(self) -> None:
         engine = self.window.engine
         package = engine.package
         self.room_selector.blockSignals(True)
+        current = self.room_selector.currentText()
         self.room_selector.clear()
-        rooms = [room["name"] for room in package.rooms] if package else []
+        rooms = [room.get("name", "Unnamed Room") for room in package.rooms] if package else []
         self.room_selector.addItems(rooms)
-        if engine.active_room in rooms:
-            self.room_selector.setCurrentText(engine.active_room)
+        selected_room = engine.active_room if engine.active_room in rooms else (current if current in rooms else rooms[0] if rooms else "")
+        if selected_room:
+            engine.active_room = selected_room
+            self.room_selector.setCurrentText(selected_room)
         self.room_selector.blockSignals(False)
         self.scene.clear()
-        if not package:
+        if not package or not selected_room:
+            self.summary.setText("No package loaded.")
             return
-        self.summary.setText(f"Viewing {engine.active_room} — live device state and puzzle relevance")
-        room_devices = [device for device in package.devices if device.room == engine.active_room]
+        self.summary.setText(f"Viewing {selected_room} — live device state and puzzle relevance")
+        room_devices = [device for device in package.devices if device.room == selected_room]
         for idx, device in enumerate(room_devices):
             x = 30 + (idx % 3) * 180
             y = 30 + (idx // 3) * 120
             color = QColor(STATE_COLORS.get(device.state, "#AFC2D9"))
-            rect = self.scene.addRect(QRectF(x, y, 140, 80), QPen(Qt.white), QBrush(color))
+            rect = self.scene.addRect(QRectF(x, y, 140, 80), QPen(QColor("#E6EEF8")), QBrush(color))
             text = self.scene.addText(f"{device.name}\n{device.kind}\n{device.state}")
-            text.setDefaultTextColor(Qt.black)
+            text.setDefaultTextColor(QColor("#0B1220"))
             text.setPos(x + 8, y + 8)
             rect.setToolTip(str(device.metadata))
