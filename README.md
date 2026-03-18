@@ -15,7 +15,7 @@ A professional desktop authoring platform for escape rooms and immersive attract
 - Settings (project/runtime/simulation/timeline defaults)
 
 ## IMMERSEPACK export
-Export creates `IMMERSEPACK.ZIP` with runtime-oriented structure:
+Export creates `IMMERSEPACK.immersepack` by default, with optional legacy `.zip` output, using this runtime-oriented structure:
 - `immersepack.json`
 - `project/project.json`
 - `layout/rooms.json`

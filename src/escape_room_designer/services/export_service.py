@@ -14,7 +14,9 @@ from escape_room_designer.services.validation_service import ValidationResult
 
 
 class ImmersePackExporter:
-    """Create runtime-oriented IMMERSEPACK.ZIP packages."""
+    """Create runtime-oriented IMMERSEPACK archives."""
+
+    DEFAULT_ARCHIVE_NAME = "IMMERSEPACK.immersepack"
 
     def export(self, project: EscapeProject, output_zip: Path, validation: ValidationResult) -> Path:
         with tempfile.TemporaryDirectory() as tmp:
@@ -30,6 +32,7 @@ class ImmersePackExporter:
             self._write_reports(project, root, validation)
             self._write_manifest(project, root, required_assets, patch_nodes)
 
+            output_zip.parent.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
                 for file in root.rglob("*"):
                     if file.is_file():
@@ -254,7 +257,7 @@ class ImmersePackExporter:
             "project_id": project.project_id,
             "project_name": project.name,
             "project_version": project.version,
-            "pack_format_version": "1.0.0",
+            "pack_format_version": project.settings.get("runtime_pack_format_version", "1.0.0"),
             "created_by": "IMMERSE Designer – Escape Room Edition",
             "created_on": datetime.utcnow().isoformat(),
             "startup_scene": project.startup_scene,

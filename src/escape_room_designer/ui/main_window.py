@@ -109,7 +109,7 @@ class MainWindow(QMainWindow):
         m.addAction("Open Project", self.open_project)
         m.addAction("Save Project", self.save_project)
         m.addAction("Save Project As", self.save_project_as)
-        m.addAction("Export IMMERSEPACK.ZIP", self.export_project)
+        m.addAction("Export IMMERSEPACK", self.export_project)
 
     def _setup_shortcuts(self):
         QShortcut(QKeySequence.StandardKey.Copy, self, activated=self.copy_selection)
@@ -204,11 +204,11 @@ class MainWindow(QMainWindow):
 
     def _open_project_file(self, project_file: Path):
         self.current_project = self.service.load_project(project_file)
-        self.current_project_dir = project_file.parent
+        self.current_project_dir = project_file if project_file.is_dir() else project_file.parent
         self._apply_project_to_ui(); self.log(f"Opened project: {project_file}")
 
     def open_project(self):
-        fn,_=QFileDialog.getOpenFileName(self,"Open Project","","Project JSON (*.json)")
+        fn,_=QFileDialog.getOpenFileName(self,"Open Project","","Project Files (*.json *.immersepack *.zip);;Project JSON (*.json);;IMMERSEPACK (*.immersepack *.zip)")
         if fn: self._open_project_file(Path(fn))
 
     def save_project(self):
@@ -230,12 +230,16 @@ class MainWindow(QMainWindow):
         if not validation.passed:
             QMessageBox.warning(self,"Validation Failed","Cannot export: fix validation errors in log.")
             return
-        default=str((self.current_project_dir or Path.cwd())/"IMMERSEPACK.ZIP")
-        fn,_=QFileDialog.getSaveFileName(self,"Export IMMERSEPACK",default,"ZIP Files (*.zip)")
+        export_root = self.current_project_dir or Path.cwd()
+        if export_root.is_file():
+            export_root = export_root.parent
+        default=str(export_root / self.pack_exporter.DEFAULT_ARCHIVE_NAME)
+        fn,_=QFileDialog.getSaveFileName(self,"Export IMMERSEPACK",default,"IMMERSEPACK (*.immersepack);;ZIP Files (*.zip)")
         if not fn: return
         out=Path(fn)
-        if out.suffix.lower() != '.zip': out=out.with_suffix('.zip')
-        if out.name.upper() != 'IMMERSEPACK.ZIP': out=out.with_name('IMMERSEPACK.ZIP')
+        if out.suffix.lower() not in {'.immersepack', '.zip'}:
+            out=out.with_suffix('.immersepack')
+        out=out.with_name(f"IMMERSEPACK{out.suffix.lower()}")
         created=self.pack_exporter.export(self.current_project,out,validation)
         self.current_project.recent_exports.append({"file": str(created), "time": datetime.utcnow().isoformat(), "status": "success"})
         self.log(f"Exported IMMERSEPACK: {created}")
