@@ -23,3 +23,9 @@ immerse-runtime
 
 ## Demo package
 The bundled `demo_package/` folder contains a complete sample runtime package for immediate use.
+
+
+## Logs and crash reporting
+- Runtime logs are written to `logs/immerse_runtime.log`.
+- Unhandled exceptions and fatal interpreter traces are written to `logs/immerse_runtime_crash.log`.
+- If the app fails at launch, start it from a terminal to see the console message and then send the contents of those log files.
