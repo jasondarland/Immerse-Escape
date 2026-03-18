@@ -1,0 +1,12 @@
+{
+  "title": "IMMERSE Demo Attraction",
+  "package_root": "demo_package",
+  "rooms": ["Atrium", "Laboratory"],
+  "nodes": [
+    {"id": "node_gpio_1", "name": "Atrium GPIO", "type": "Node-GPIO", "transport": "mock"},
+    {"id": "node_audio_1", "name": "Lab Audio", "type": "Node-Audio", "transport": "mock"},
+    {"id": "node_video_1", "name": "Lab Video", "type": "Node-Video", "transport": "mock"},
+    {"id": "node_lighting_1", "name": "Master Lighting", "type": "Node-Lighting", "transport": "mock"},
+    {"id": "node_fx_1", "name": "FX Rack", "type": "Node-FX", "transport": "mock"}
+  ]
+}

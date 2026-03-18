@@ -1,0 +1,7 @@
+{
+  "scheduled_cues": [
+    {"id": "intro_atmo", "room": "Atrium", "type": "audio", "delay": 0},
+    {"id": "rfid_success_video", "room": "Laboratory", "type": "video", "delay": 1.5},
+    {"id": "finale_lighting", "room": "Atrium", "type": "lighting", "delay": 0.5}
+  ]
+}

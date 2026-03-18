@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "immerse-runtime-escape-room-edition"
+version = "0.1.0"
+description = "IMMERSE Runtime – Escape Room Edition"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "PySide6>=6.7",
+]
+
+[project.scripts]
+immerse-runtime = "immerse_runtime.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+immerse_runtime = ["demo_package/**/*.json", "demo_package/**/__init__.py"]

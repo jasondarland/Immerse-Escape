@@ -1,0 +1,12 @@
+{
+  "variables": {
+    "atrium_keypad_solved": false,
+    "lab_rfid_solved": false,
+    "finale_armed": false,
+    "hint_count": 0,
+    "reset_required": false,
+    "fault_flag": false,
+    "game_mode": "demo"
+  },
+  "progression": ["Runtime initialized", "Nodes in mock mode ready", "Awaiting operator session start"]
+}

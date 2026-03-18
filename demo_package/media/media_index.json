@@ -1,0 +1,6 @@
+{
+  "audio": ["atrium_atmosphere.wav", "lab_success_sting.wav"],
+  "video": ["lab_reveal.mp4", "finale_countdown.mp4"],
+  "lighting": ["atrium_idle_cue", "finale_red_alert"],
+  "fx": ["fog_burst"]
+}

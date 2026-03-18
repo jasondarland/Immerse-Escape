@@ -1,0 +1,8 @@
+{
+  "connections": [
+    {"source": "atrium_keypad", "target": "atrium_lock"},
+    {"source": "lab_rfid", "target": "lab_audio"},
+    {"source": "lab_rfid", "target": "lab_video"},
+    {"source": "finale_trigger", "target": "master_lighting"}
+  ]
+}

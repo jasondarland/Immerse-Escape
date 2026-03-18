@@ -1,0 +1,7 @@
+{
+  "rooms": ["Atrium", "Laboratory"],
+  "puzzle_flow": ["Atrium Keypad", "Laboratory RFID", "Finale Trigger"],
+  "conditions": ["atrium_keypad_solved", "lab_rfid_solved", "finale_armed"],
+  "timers": ["session_countdown", "door_unlock_window", "finale_delay"],
+  "failsafe": ["Emergency unlock opens all mag locks", "Stop all outputs on critical fault", "Reset restores default variables and clears sequences"]
+}
