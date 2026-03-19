@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QBrush, QPen
-from PySide6.QtWidgets import QComboBox, QGraphicsScene, QGraphicsView, QLabel, QVBoxLayout, QWidget
+from pathlib import Path
+
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QColor, QBrush, QPen, QPixmap
+from PySide6.QtWidgets import QFileDialog, QComboBox, QGraphicsScene, QGraphicsView, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 
 STATE_COLORS = {
@@ -21,19 +23,46 @@ class RoomViewPage(QWidget):
         super().__init__()
         self.window = window
         layout = QVBoxLayout(self)
+        controls = QHBoxLayout()
         self.room_selector = QComboBox()
         self.room_selector.currentTextChanged.connect(self._room_changed)
+        self.upload_button = QPushButton("Upload Background")
+        self.upload_button.clicked.connect(self._upload_background)
+        self.clear_button = QPushButton("Clear Background")
+        self.clear_button.clicked.connect(self._clear_background)
+        controls.addWidget(self.room_selector, 1)
+        controls.addWidget(self.upload_button)
+        controls.addWidget(self.clear_button)
         self.summary = QLabel("Digital twin room map")
+        self.background_label = QLabel("Background: none")
+        self.background_label.setProperty("role", "secondary")
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
-        layout.addWidget(self.room_selector)
+        self.view.setRenderHints(self.view.renderHints())
+        layout.addLayout(controls)
         layout.addWidget(self.summary)
+        layout.addWidget(self.background_label)
         layout.addWidget(self.view)
 
     def _room_changed(self, room: str) -> None:
         if room and room != self.window.engine.active_room:
             self.window.engine.active_room = room
             self.window.refresh_all()
+
+    def _upload_background(self) -> None:
+        room = self.window.engine.active_room
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            f"Select background for {room}",
+            str(Path.home()),
+            "Images (*.png *.jpg *.jpeg *.bmp *.webp)",
+        )
+        if path:
+            self.window.engine.set_room_background(room, path)
+
+    def _clear_background(self) -> None:
+        room = self.window.engine.active_room
+        self.window.engine.set_room_background(room, None)
 
     def refresh(self) -> None:
         engine = self.window.engine
@@ -51,8 +80,24 @@ class RoomViewPage(QWidget):
         self.scene.clear()
         if not package or not selected_room:
             self.summary.setText("No package loaded.")
+            self.background_label.setText("Background: none")
             return
+
         self.summary.setText(f"Viewing {selected_room} — live device state and puzzle relevance")
+        background_path = engine.get_room_background(selected_room)
+        self.background_label.setText(f"Background: {Path(background_path).name}" if background_path else "Background: none")
+        if background_path:
+            pixmap = QPixmap(background_path)
+            if not pixmap.isNull():
+                scaled = pixmap.scaled(1200, 700, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                self.scene.addPixmap(scaled).setZValue(-10)
+                self.scene.setSceneRect(QRectF(scaled.rect()))
+            else:
+                self.background_label.setText(f"Background: failed to load ({Path(background_path).name})")
+                self.scene.setSceneRect(QRectF(0, 0, 1200, 700))
+        else:
+            self.scene.setSceneRect(QRectF(0, 0, 1200, 700))
+
         room_devices = [device for device in package.devices if device.room == selected_room]
         for idx, device in enumerate(room_devices):
             x = 30 + (idx % 3) * 180

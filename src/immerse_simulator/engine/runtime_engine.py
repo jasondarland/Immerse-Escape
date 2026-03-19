@@ -36,6 +36,7 @@ class RuntimeEngine(QObject):
         self.active_room = "Lab A"
         self.current_room_mode = "standby"
         self.active_alerts: list[str] = []
+        self.room_backgrounds: dict[str, str] = {}
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._timer.start(1000)
@@ -47,11 +48,24 @@ class RuntimeEngine(QObject):
         self.state_manager.bulk_load(self.package.states)
         self.nodes.load_devices(self.package.devices)
         self.active_room = self.package.rooms[0]["name"] if self.package.rooms else "Global"
+        self.room_backgrounds = {room.get("name", "Unnamed Room"): room.get("background_image", "") for room in self.package.rooms}
         self.event_bus.emit_event(Event(source="PackageLoader", event_type="package", message=f"Loaded package {self.package.name}"))
         self.package_loaded.emit()
         self.state_changed.emit()
         self.nodes_changed.emit()
         self.timeline_changed.emit()
+
+
+    def set_room_background(self, room: str, image_path: str | None) -> None:
+        if not room:
+            return
+        self.room_backgrounds[room] = image_path or ""
+        action = image_path if image_path else "cleared"
+        self.event_bus.emit_event(Event(source="RoomView", event_type="background", message=f"Background for {room}: {action}", room=room))
+        self.state_changed.emit()
+
+    def get_room_background(self, room: str) -> str:
+        return self.room_backgrounds.get(room, "")
 
     def start_session(self) -> None:
         self.session.start()
