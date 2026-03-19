@@ -1,0 +1,13 @@
+{
+  "name": "IMMERSE Escape Simulator Demo",
+  "version": "1.0",
+  "rooms": [
+    {"name": "Lab A", "description": "Entry lab with keypad challenge."},
+    {"name": "Lab B", "description": "Advanced chamber with RFID and sequence puzzle."}
+  ],
+  "puzzles": [
+    {"puzzle_id": "lab_a_keypad", "name": "Lab A Keypad", "room": "Lab A", "puzzle_type": "keypad", "metadata": {"code": "0426"}},
+    {"puzzle_id": "lab_b_rfid", "name": "Lab B RFID", "room": "Lab B", "puzzle_type": "rfid", "metadata": {"tag": "RFID-ALPHA"}},
+    {"puzzle_id": "lab_b_sequence", "name": "Lab B Sequence", "room": "Lab B", "puzzle_type": "sequence", "metadata": {"pattern": "RGBY"}}
+  ]
+}

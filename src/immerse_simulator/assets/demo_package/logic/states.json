@@ -1,0 +1,9 @@
+{
+  "states": {
+    "session_mode": "idle",
+    "lab_a_enabled": true,
+    "lab_b_enabled": false,
+    "hint_count": 0,
+    "finale_ready": false
+  }
+}

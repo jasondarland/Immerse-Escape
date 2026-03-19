@@ -1,0 +1,12 @@
+{
+  "devices": [
+    {"device_id": "lab_a_keypad", "name": "Lab A Keypad", "node_type": "Node-GPIO", "room": "Lab A", "kind": "keypad", "state": "idle", "metadata": {"default_state": "idle"}},
+    {"device_id": "lab_a_door", "name": "Lab A Door", "node_type": "Node-GPIO", "room": "Lab A", "kind": "lock", "state": "locked", "metadata": {"default_state": "locked"}},
+    {"device_id": "lab_a_speaker", "name": "Lab A Speaker", "node_type": "Node-Audio", "room": "Lab A", "kind": "speaker", "state": "idle", "metadata": {"default_state": "idle"}},
+    {"device_id": "lab_b_reader", "name": "Lab B RFID Reader", "node_type": "Node-GPIO", "room": "Lab B", "kind": "rfid", "state": "waiting", "metadata": {"default_state": "waiting"}},
+    {"device_id": "lab_b_console", "name": "Lab B Sequence Console", "node_type": "Node-Lighting", "room": "Lab B", "kind": "sequence", "state": "idle", "metadata": {"default_state": "idle"}},
+    {"device_id": "lab_b_screen", "name": "Lab B Briefing Screen", "node_type": "Node-Video", "room": "Lab B", "kind": "screen", "state": "idle", "metadata": {"default_state": "idle"}},
+    {"device_id": "fogger_finale", "name": "Finale Fogger", "node_type": "Node-FX", "room": "Lab B", "kind": "fx", "state": "inactive", "metadata": {"default_state": "inactive"}},
+    {"device_id": "final_door", "name": "Final Door", "node_type": "Node-GPIO", "room": "Lab B", "kind": "lock", "state": "locked", "metadata": {"default_state": "locked"}}
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "cues": [
+    {"cue_id": "cue_intro_audio", "name": "Intro Audio", "track": "Intro", "trigger_mode": "on_session_start", "target_device": "lab_a_speaker", "action": "play", "duration": 30.0},
+    {"cue_id": "cue_briefing_video", "name": "Briefing Video", "track": "Intro", "trigger_mode": "on_session_start", "target_device": "lab_b_screen", "action": "play", "duration": 45.0},
+    {"cue_id": "cue_finale_fx", "name": "Finale FX", "track": "Finale", "trigger_mode": "on_sequence_solved", "target_device": "fogger_finale", "action": "activate", "duration": 20.0}
+  ]
+}
